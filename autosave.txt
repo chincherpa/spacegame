@@ -1,1 +1,0 @@
-[[sg.Column([[sg.Text(text="Cycle:", key="t1")], [sg.Button(button_text="Button1")], [sg.Button(button_text="Button2")], [sg.Button(button_text="Button3")]]), sg.Column([[sg.TabGroup([[sg.Tab("Tab 1", [[sg.Text()]], border_width=3), sg.Tab("Tab 2", [[sg.TabGroup([[sg.Tab(None, [])], [sg.Tab(None, [])], [sg.Tab(None, [])]])]], border_width=5)]])]])]]

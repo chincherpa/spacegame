@@ -16,31 +16,54 @@ lTab_Science = [
           ]),
           sg.Column([
             [sg.Text("Forschung2")],
-            [sg.Text("PLACEHOLDER2")]
+            [sg.Text("PLACEHOLDER2")],
+            [sg.Button(button_text="Eisen +1")]
           ])
           ]
         ]
 
+node_table = sg.Table(values = list(INVENTORY.values()), headings = list(INVENTORY.keys()),
+                    def_col_width = 12,
+                    auto_size_columns=False,
+                    display_row_numbers=False,
+                    justification='right',
+                    num_rows=5,
+                    row_height=25,
+                    key = '-NDTABLE-',
+                    tooltip='This is a table')
+
 lTab_Inventory = [
-          [sg.Column([
-            [sg.Text('Baumaterial')],
-            [sg.Text('Staub')],
-            [sg.Text('Gold')],
-            [sg.Text('Eisen')],
-            [sg.Text('Stein')],
-            [sg.Text('Werkzeug')],
-            [sg.Text('Wasser')],
-          ]),
-          sg.Column([
-            [sg.Text(INVENTORY['buildingmaterial'])],
-            [sg.Text(INVENTORY['dust'])],
-            [sg.Text(INVENTORY['gold'])],
-            [sg.Text(INVENTORY['iron'])],
-            [sg.Text(INVENTORY['stone'])],
-            [sg.Text(INVENTORY['tool'])],
-            [sg.Text(INVENTORY['water'])],
-          ])
-          ]
+  [sg.Text('Baumaterial')],
+  [sg.Table(values = [1,2,3]#list(INVENTORY.values())#, headings = list(INVENTORY.keys()),
+                    # def_col_width = 10,
+                    # auto_size_columns=False,
+                    # display_row_numbers=False,
+                    # justification='right',
+                    # num_rows=1,
+                    # row_height=25,
+                    # key = '-NDTABLE-',
+                    # tooltip='This is a table'
+                    )]
+  # [node_table]
+          # [sg.Column([
+          #   [sg.Text('Baumaterial')],
+          #   [sg.Text('Staub')],
+          #   [sg.Text('Gold')],
+          #   [sg.Text('Eisen')],
+          #   [sg.Text('Stein')],
+          #   [sg.Text('Werkzeug')],
+          #   [sg.Text('Wasser')],
+          # ]),
+          # sg.Column([
+          #   [sg.Text(INVENTORY['buildingmaterial'])],
+          #   [sg.Text(INVENTORY['dust'])],
+          #   [sg.Text(INVENTORY['gold'])],
+          #   [sg.Text(INVENTORY['iron'])],
+          #   [sg.Text(INVENTORY['stone'])],
+          #   [sg.Text(INVENTORY['tool'])],
+          #   [sg.Text(INVENTORY['water'])],
+          # ])
+          # ]
         ]
 
 lTab_Earth = [

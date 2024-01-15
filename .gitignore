@@ -1,5 +1,5 @@
 *.exe
 .git/
 venv/
-pycache/
+__pycache__/
 *.xlsx
