@@ -1,4 +1,7 @@
+
+TITLE = "Spacegame"
+
 TICK = 0.1
 
 WINDOW_READ = 1000
-WINDOW_SIZE = (600, 400)
+WINDOW_SIZE = (600, 600)
