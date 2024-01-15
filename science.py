@@ -1,23 +1,23 @@
 SCIENCE = {
+  'buildingmaterial': {
+    'description': 'Text Beschreibung buildingmaterial',
+    'duration': 2
+  },
   'iron': {
     'description': 'Text Beschreibung iron',
     'duration': 2
   },
-  'rocket': {
-    'description': 'Text Beschreibung rocket',
-    'duration': 200
-  },
   'moonlander': {
     'description': 'Text Beschreibung moonlander',
-    'duration': 150
-  },
-  'buildingmaterial': {
-    'description': 'Text Beschreibung buildingmaterial',
     'duration': 10
+  },
+  'rocket': {
+    'description': 'Text Beschreibung rocket',
+    'duration': 20
   },
   'tool': {
     'description': 'Text Beschreibung tool',
-    'duration': 10
+    'duration': 5
   },
 }
 
