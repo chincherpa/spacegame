@@ -1,14 +1,9 @@
 INVENTORY = {
-
-  'buildingmaterial': 18,
-  'dust': 28,
-  'gold': 38,
-  'iron': 48,
-  'stone': 58,
-  'tool': 68,
-  'water': 78,
+    "Baumaterial": 18,
+    "Staub": 28,
+    "Gold": 38,
+    "Eisen": 48,
+    "Stein": 58,
+    "Werkzeug": 68,
+    "Wasser": 78,
 }
-
-
-
-

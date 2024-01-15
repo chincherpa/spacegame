@@ -7,142 +7,157 @@ from gamestate import GAMESTATE
 
 sg.theme('Dark Teal 6')
 
-lTab_HQ = [
-          [sg.Column([
-            [sg.Text('HQ')],
-            [sg.Text('PLACEHOLDER')]
-          ])]
-        ]
+lTab_HQ = [[sg.Column([[sg.Text('HQ')], [sg.Text('PLACEHOLDER')]])]]
 
 lTab_Science = [
   [
-    sg.Column([
-      [sg.Button(button_text='Erforsche Eisen')],
-      [sg.Button(button_text='Erforsche Rakete')],
-      [sg.Button(button_text='Erforsche Mondlander')],
-      [sg.Button(button_text='Erforsche Baumaterial')],
-      [sg.Button(button_text='Erforsche Werkzeug')],
-
-    ]),
+    sg.Column(
+      [
+        [sg.Button(button_text='Erforsche Eisen')],
+        [sg.Button(button_text='Erforsche Rakete')],
+        [sg.Button(button_text='Erforsche Mondlander')],
+        [sg.Button(button_text='Erforsche Baumaterial')],
+        [sg.Button(button_text='Erforsche Werkzeug')],
+      ]
+    ),
     sg.VerticalSeparator(),
-    sg.Column([
-      [sg.Text('Beschreibung:')],
-      [sg.Text('', key='desc_Research', visible=False, size=(30, 6))],
-      [sg.Text('', key='desc_duration', visible=False)],
-      [sg.Button('Erforschen', key='do_Research', visible=False)]
-    ])
+    sg.Column(
+      [
+        [sg.Text('Beschreibung:')],
+        [sg.Text('', key='desc_Research', visible=False, size=(30, 6))],
+        [sg.Text('', key='desc_duration', visible=False)],
+        [sg.Button('Erforschen', key='do_Research', visible=False)],
+      ]
+    ),
   ],
   [
-    sg.ProgressBar(0, orientation='h', size=(20, 20), key='PROGRESS BAR', visible=False),
-    sg.Button('Erforschen stoppen', key='Cancel_Science', visible=False)
-  ]
+    sg.ProgressBar(
+      0, orientation='h', size=(20, 20), key='PROGRESS BAR', visible=False
+    ),
+    sg.Button('Erforschen stoppen', key='Cancel_Science', visible=False),
+  ],
 ]
 
-table_inventory = sg.Table([
-  list(INVENTORY.values())],
-  list(INVENTORY.keys()),
-  # num_rows=1,
-  # def_col_width = 100,
-  auto_size_columns=True,
-  # display_row_numbers=False,
-  justification='center',
-  # num_rows=1,
-  # row_height=25,
-  key = 'TABLEINV',
-  # tooltip='This is a table'
-)
 
-def show_inventory():
-  pass
+def get_materials_from_inventory():
+  lMaterials = []
+  for material, amount in INVENTORY.items():
+    lMaterials.append([sg.Text(material)])
+  return lMaterials
+
+
+def get_amounts_from_inventory():
+  lAmounts = []
+  for material, amount in INVENTORY.items():
+    lAmounts.append(
+      [sg.Text(amount)]  # , tooltip=f'Hier steht Werkzeugtip für {material}')]
+    )
+  return lAmounts
+
 
 lTab_Inventory = [
   [sg.Text('Baumaterial')],
-  # [sg.Table(values = [1,2,3])]  #list(INVENTORY.values())#, headings = list(INVENTORY.keys()),
-  [table_inventory]
-  # [node_table]
-          # [sg.Column([
-          #   [sg.Text('Baumaterial')],
-          #   [sg.Text('Staub')],
-          #   [sg.Text('Gold')],
-          #   [sg.Text('Eisen')],
-          #   [sg.Text('Stein')],
-          #   [sg.Text('Werkzeug')],
-          #   [sg.Text('Wasser')],
-          # ]),
-          # sg.Column([
-          #   [sg.Text(INVENTORY['buildingmaterial'])],
-          #   [sg.Text(INVENTORY['dust'])],
-          #   [sg.Text(INVENTORY['gold'])],
-          #   [sg.Text(INVENTORY['iron'])],
-          #   [sg.Text(INVENTORY['stone'])],
-          #   [sg.Text(INVENTORY['tool'])],
-          #   [sg.Text(INVENTORY['water'])],
-          # ])
-          # ]
-        ]
+  [
+    sg.Column(get_materials_from_inventory()),
+    sg.Column(get_amounts_from_inventory()),
+  ],
+]
 
-lTab_Earth = [
+lTab_Erde = [
   [sg.Text('Erde')],
-  [sg.Text(f'Astronauten auf der Erde {GAMESTATE['astronauts']['earth']}')],
-  ]
+  [sg.Text(f'Astronauten auf der Erde {GAMESTATE['Astronauten']['Erde']}')],
+]
 
-lTab_Moon = [
+lTab_Mond = [
   [sg.Text('Mond')],
-  ]
+  [sg.Text(f'Astronauten auf dem Mond {GAMESTATE['Astronauten']['Mond']}')],
+]
 
 lTab_Mars = [
   [sg.Text('Mars')],
-  ]
+  [sg.Text(f'Astronauten auf dem Mars {GAMESTATE['Astronauten']['Mars']}')],
+]
 
 lTab_Planets = [
-          [sg.TabGroup([
-            [sg.Tab('Erde', lTab_Earth, key='TAB_EARTH')],
-            [sg.Tab('Mond', lTab_Moon, key='TAB_MOON')],
-            [sg.Tab('Mars', lTab_Mars, key='TAB_MARS')
-            ]
-          ], expand_x=True, expand_y=True)]
-        ]
-
-LAYOUT = [[
-    [sg.Text(text='Cycle:', key='tCycles'), sg.Text(text='Credits:', key='tCredits')],
-  sg.Column([
-    [sg.Button(button_text='HQ')],
-    [sg.Button(button_text='Forschung')],
-    [sg.Button(button_text='Inventar')],
-    [sg.Button(button_text='Planeten')],
-  ]),
-
-  sg.Column([[
-    sg.TabGroup([
+  [
+    sg.TabGroup(
       [
-        sg.Tab('HQ', lTab_HQ, key='TAB_HQ'),
-        sg.Tab('Forschung', lTab_Science, key='TAB_SCIENCE'), #, visible=False),
-        sg.Tab('Inventar', lTab_Inventory, key='TAB_INVENTORY'), #, visible=False),
-        sg.Tab('Planeten', lTab_Planets, key='TAB_PLANETS'), #, visible=False),
-      ]], expand_x=True, expand_y=True)
-  ]])
-]]
+        [sg.Tab('Erde', lTab_Erde, key='TAB_Erde')],
+        [sg.Tab('Mond', lTab_Mond, key='TAB_Mond')],
+        [sg.Tab('Mars', lTab_Mars, key='TAB_Mars')],
+      ],
+      expand_x=True,
+      expand_y=True,
+    )
+  ]
+]
+
+LAYOUT = [
+  [
+    [
+      sg.Text(text='Cycle:', key='tCycles'),
+      sg.Text(text='Credits:', key='tCredits'),
+    ],
+    sg.Column(
+      [
+        [sg.Button(button_text='HQ')],
+        [sg.Button(button_text='Forschung')],
+        [sg.Button(button_text='Inventar')],
+        [sg.Button(button_text='Planeten')],
+      ]
+    ),
+    sg.Column(
+      [
+        [
+          sg.TabGroup(
+            [
+              [
+                sg.Tab('HQ', lTab_HQ, key='TAB_HQ'),
+                sg.Tab(
+                  'Forschung', lTab_Science, key='TAB_SCIENCE'
+                ),  # , visible=False),
+                sg.Tab(
+                  'Inventar', lTab_Inventory, key='TAB_INVENTORY'
+                ),  # , visible=False),
+                sg.Tab(
+                  'Planeten', lTab_Planets, key='TAB_PLANETS'
+                ),  # , visible=False),
+              ]
+            ],
+            expand_x=True,
+            expand_y=True,
+          )
+        ]
+      ]
+    ),
+  ]
+]
 
 window = sg.Window(config.TITLE, LAYOUT, size=config.WINDOW_SIZE, resizable=True)
 fTicks = 0
 iCredits = 500
 
-# tab_keys = ('TAB_HQ','TAB_EARTH','TAB_MOON', 'TAB_MARS')
+# tab_keys = ('TAB_HQ','TAB_Erde','TAB_Mond', 'TAB_Mars')
 
 inventory = INVENTORY
-dGamestate = {
-  
-}
+dGamestate = {}
 
 bScience_ongoing = False
 iCurrent_Value = None
 sCurrent_Research = None
 
+
 def show_research(sCurrent_Research):
-  window['desc_Research'].update(visible=True, value=SCIENCE[sCurrent_Research]['description'])
-  window['desc_duration'].update(visible=True, value=f'Forschungsdauer: {SCIENCE[sCurrent_Research]['duration']} Zyklen')
+  window['desc_Research'].update(
+    visible=True, value=SCIENCE[sCurrent_Research]['description']
+  )
+  window['desc_duration'].update(
+    visible=True,
+    value=f'Forschungsdauer: {SCIENCE[sCurrent_Research]['duration']} Zyklen',
+  )
   if not bScience_ongoing:
     window['do_Research'].update(visible=True)
+
 
 def do_research(sCurrent_Research):
   window['do_Research'].update(visible=False)
@@ -157,6 +172,7 @@ def do_research(sCurrent_Research):
   window['PROGRESS BAR'].update(visible=True)
   window['Cancel_Science'].update(visible=True)
 
+
 while True:
   event, values = window.read(config.WINDOW_READ)
   fTicks += config.TICK
@@ -165,8 +181,7 @@ while True:
 
   if event != '__TIMEOUT__':
     print(f'{event = }')
-  if event in (
-    sg.WINDOW_CLOSED, 'Exit'):
+  if event in (sg.WINDOW_CLOSED, 'Exit'):
     break
   if event == 'HQ':
     window['TAB_HQ'].select()
@@ -178,17 +193,17 @@ while True:
   elif event == 'Planeten':
     window['TAB_PLANETS'].select()
 
-  elif 'Erforsche'in event:
+  elif 'Erforsche' in event:
     if 'Eisen' in event:
-      sCurrent_Research = 'iron'
+      sCurrent_Research = 'Eisen'
     if 'Rakete' in event:
       sCurrent_Research = 'rocket'
     if 'Mondlander' in event:
-      sCurrent_Research = 'moonlander'
+      sCurrent_Research = 'Mondlander'
     if 'Baumaterial' in event:
-      sCurrent_Research = 'buildingmaterial'
+      sCurrent_Research = 'Baumaterial'
     if 'Werkzeug' in event:
-      sCurrent_Research = 'tool'
+      sCurrent_Research = 'Werkzeug'
 
     show_research(sCurrent_Research)
 
@@ -212,8 +227,3 @@ while True:
 
       window['PROGRESS BAR'].update(visible=False)
       window['Cancel_Science'].update(visible=False)
-
-
-  print(inventory)
-
-
