@@ -1,0 +1,5 @@
+*.exe
+.git/
+venv/
+pycache/
+*.xlsx

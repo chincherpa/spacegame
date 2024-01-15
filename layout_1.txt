@@ -1,0 +1,2 @@
+[
+[sg.Text(text="Ticks: 123      Credits: 250")],[sg.Button(button_text="HQ")],[sg.Button(button_text="Forschung")],[sg.Button(button_text="Inventar")],]

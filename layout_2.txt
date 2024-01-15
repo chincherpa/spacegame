@@ -1,0 +1,1 @@
+[[sg.Column([[sg.Text(text="Hier steht Text")], [sg.Button(button_text="Button1")], [sg.Button(button_text="Button2")], [sg.Button(button_text="Button3")]])]]
