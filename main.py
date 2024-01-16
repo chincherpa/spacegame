@@ -7,33 +7,52 @@ from gamestate import GAMESTATE
 
 sg.theme('Dark Teal 6')
 
+def show_research(sCurrent_Research):
+  window['desc_Research'].update(
+    visible=True, value=SCIENCE[sCurrent_Research]['description']
+  )
+  window['desc_duration'].update(
+    visible=True,
+    value=f'Forschungsdauer: {SCIENCE[sCurrent_Research]['duration']} Zyklen',
+  )
+  if not bScience_ongoing:
+    window['do_Research'].update(visible=True)
+
+def do_research(sCurrent_Research):
+  window['do_Research'].update(visible=False)
+  global bScience_ongoing
+  global iCurrent_Value
+  global iMax_Science
+  bScience_ongoing = True
+  iMax_Science = SCIENCE[sCurrent_Research]['duration'] / config.TICK
+  iCurrent_Value = 0
+  print(f'{iMax_Science = }')
+  window['PROGRESS BAR'].update(current_count=0, max=iMax_Science)
+  window['PROGRESS BAR'].update(visible=True)
+  window['Cancel_Science'].update(visible=True)
+
+
 lTab_HQ = [[sg.Column([[sg.Text('HQ')], [sg.Text('PLACEHOLDER')]])]]
 
 lTab_Science = [
   [
-    sg.Column(
-      [
-        [sg.Button(button_text='Erforsche Eisen')],
-        [sg.Button(button_text='Erforsche Rakete')],
-        [sg.Button(button_text='Erforsche Mondlander')],
-        [sg.Button(button_text='Erforsche Baumaterial')],
-        [sg.Button(button_text='Erforsche Werkzeug')],
-      ]
-    ),
+    sg.Column([
+      [sg.Button(button_text='Erforsche Eisen')],
+      [sg.Button(button_text='Erforsche Rakete')],
+      [sg.Button(button_text='Erforsche Mondlander')],
+      [sg.Button(button_text='Erforsche Baumaterial')],
+      [sg.Button(button_text='Erforsche Werkzeug')],
+    ]),
     sg.VerticalSeparator(),
-    sg.Column(
-      [
-        [sg.Text('Beschreibung:')],
-        [sg.Text('', key='desc_Research', visible=False, size=(30, 6))],
-        [sg.Text('', key='desc_duration', visible=False)],
-        [sg.Button('Erforschen', key='do_Research', visible=False)],
-      ]
-    ),
+    sg.Column([
+      [sg.Text('Beschreibung:')],
+      [sg.Text('', key='desc_Research', visible=False, size=(30, 6))],
+      [sg.Text('', key='desc_duration', visible=False)],
+      [sg.Button('Erforschen', key='do_Research', visible=False)],
+    ]),
   ],
   [
-    sg.ProgressBar(
-      0, orientation='h', size=(20, 20), key='PROGRESS BAR', visible=False
-    ),
+    sg.ProgressBar(0, orientation='h', size=(20, 20), key='PROGRESS BAR', visible=False),
     sg.Button('Erforschen stoppen', key='Cancel_Science', visible=False),
   ],
 ]
@@ -49,9 +68,7 @@ def get_materials_from_inventory():
 def get_amounts_from_inventory():
   lAmounts = []
   for material, amount in INVENTORY.items():
-    lAmounts.append(
-      [sg.Text(amount)]  # , tooltip=f'Hier steht Werkzeugtip für {material}')]
-    )
+    lAmounts.append([sg.Text(amount)])
   return lAmounts
 
 
@@ -92,6 +109,29 @@ lTab_Planets = [
   ]
 ]
 
+lTab_Shop = [
+  [
+    sg.Column([
+      [sg.Button(button_text='Erforsche Eisen')],
+      [sg.Button(button_text='Erforsche Rakete')],
+      [sg.Button(button_text='Erforsche Mondlander')],
+      [sg.Button(button_text='Erforsche Baumaterial')],
+      [sg.Button(button_text='Erforsche Werkzeug')],
+    ]),
+    sg.VerticalSeparator(),
+    sg.Column([
+      [sg.Text('Beschreibung:')],
+      [sg.Text('', key='desc_Research', visible=False, size=(30, 6))],
+      [sg.Text('', key='desc_duration', visible=False)],
+      [sg.Button('Erforschen', key='do_Research', visible=False)],
+    ]),
+  ],
+  [
+    sg.ProgressBar(0, orientation='h', size=(20, 20), key='PROGRESS BAR', visible=False),
+    sg.Button('Erforschen stoppen', key='Cancel_Science', visible=False),
+  ],
+]
+
 LAYOUT = [
   [
     [
@@ -104,38 +144,25 @@ LAYOUT = [
         [sg.Button(button_text='Forschung')],
         [sg.Button(button_text='Inventar')],
         [sg.Button(button_text='Planeten')],
+        [sg.Button(button_text='Shop')],
       ]
     ),
-    sg.Column(
-      [
+    sg.Column([
+      [sg.TabGroup([
         [
-          sg.TabGroup(
-            [
-              [
-                sg.Tab('HQ', lTab_HQ, key='TAB_HQ'),
-                sg.Tab(
-                  'Forschung', lTab_Science, key='TAB_SCIENCE'
-                ),  # , visible=False),
-                sg.Tab(
-                  'Inventar', lTab_Inventory, key='TAB_INVENTORY'
-                ),  # , visible=False),
-                sg.Tab(
-                  'Planeten', lTab_Planets, key='TAB_PLANETS'
-                ),  # , visible=False),
-              ]
-            ],
-            expand_x=True,
-            expand_y=True,
-          )
+          sg.Tab('HQ', lTab_HQ, key='TAB_HQ'),
+          sg.Tab('Forschung', lTab_Science, key='TAB_SCIENCE'),
+          sg.Tab('Inventar', lTab_Inventory, key='TAB_INVENTORY'),
+          sg.Tab('Planeten', lTab_Planets, key='TAB_PLANETS'),
+          sg.Tab('Shop', lTab_Shop, key='TAB_Shop'),
         ]
-      ]
-    ),
+      ], expand_x=True, expand_y=True)]
+    ]),
   ]
 ]
 
-window = sg.Window(config.TITLE, LAYOUT, size=config.WINDOW_SIZE, resizable=True)
 fTicks = 0
-iCredits = 500
+iCredits = config.START_CREDITS
 
 # tab_keys = ('TAB_HQ','TAB_Erde','TAB_Mond', 'TAB_Mars')
 
@@ -146,32 +173,7 @@ bScience_ongoing = False
 iCurrent_Value = None
 sCurrent_Research = None
 
-
-def show_research(sCurrent_Research):
-  window['desc_Research'].update(
-    visible=True, value=SCIENCE[sCurrent_Research]['description']
-  )
-  window['desc_duration'].update(
-    visible=True,
-    value=f'Forschungsdauer: {SCIENCE[sCurrent_Research]['duration']} Zyklen',
-  )
-  if not bScience_ongoing:
-    window['do_Research'].update(visible=True)
-
-
-def do_research(sCurrent_Research):
-  window['do_Research'].update(visible=False)
-  global bScience_ongoing
-  global iCurrent_Value
-  global iMax_Science
-  bScience_ongoing = True
-  iMax_Science = SCIENCE[sCurrent_Research]['duration'] / config.TICK
-  iCurrent_Value = 0
-  print(f'{iMax_Science = }')
-  window['PROGRESS BAR'].update(current_count=0, max=iMax_Science)
-  window['PROGRESS BAR'].update(visible=True)
-  window['Cancel_Science'].update(visible=True)
-
+window = sg.Window(config.TITLE, LAYOUT, size=config.WINDOW_SIZE, resizable=True)
 
 while True:
   event, values = window.read(config.WINDOW_READ)
