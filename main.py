@@ -4,17 +4,13 @@ import config
 from inventory import INVENTORY
 from science import SCIENCE
 from gamestate import GAMESTATE
+from actions import ACTIONS
 
 sg.theme('Dark Teal 6')
 
 def show_research(sCurrent_Research):
-  window['desc_Research'].update(
-    visible=True, value=SCIENCE[sCurrent_Research]['description']
-  )
-  window['desc_duration'].update(
-    visible=True,
-    value=f'Forschungsdauer: {SCIENCE[sCurrent_Research]['duration']} Zyklen',
-  )
+  window['desc_Research'].update(visible=True, value=SCIENCE[sCurrent_Research]['beschreibung'])
+  window['desc_dauer'].update(visible=True, value=f'Forschungsdauer: {SCIENCE[sCurrent_Research]['dauer']} Zyklen')
   if not bScience_ongoing:
     window['do_Research'].update(visible=True)
 
@@ -24,12 +20,12 @@ def do_research(sCurrent_Research):
   global iCurrent_Value
   global iMax_Science
   bScience_ongoing = True
-  iMax_Science = SCIENCE[sCurrent_Research]['duration'] / config.TICK
+  iMax_Science = SCIENCE[sCurrent_Research]['dauer'] / config.TICK
   iCurrent_Value = 0
   print(f'{iMax_Science = }')
-  window['PROGRESS BAR'].update(current_count=0, max=iMax_Science)
-  window['PROGRESS BAR'].update(visible=True)
-  window['Cancel_Science'].update(visible=True)
+  window['Progressbar'].update(current_count=0, max=iMax_Science)
+  window['Progressbar'].update(visible=True)
+  window['Stop_Research'].update(visible=True)
 
 
 lTab_HQ = [[sg.Column([[sg.Text('HQ')], [sg.Text('PLACEHOLDER')]])]]
@@ -47,13 +43,13 @@ lTab_Science = [
     sg.Column([
       [sg.Text('Beschreibung:')],
       [sg.Text('', key='desc_Research', visible=False, size=(30, 6))],
-      [sg.Text('', key='desc_duration', visible=False)],
+      [sg.Text('', key='desc_dauer', visible=False)],
       [sg.Button('Erforschen', key='do_Research', visible=False)],
     ]),
   ],
   [
-    sg.ProgressBar(0, orientation='h', size=(20, 20), key='PROGRESS BAR', visible=False),
-    sg.Button('Erforschen stoppen', key='Cancel_Science', visible=False),
+    sg.ProgressBar(0, orientation='h', size=(20, 20), key='Progressbar', visible=False),
+    sg.Button('Erforschen stoppen', key='Stop_Research', visible=False),
   ],
 ]
 
@@ -122,13 +118,13 @@ lTab_Shop = [
     sg.Column([
       [sg.Text('Beschreibung:')],
       [sg.Text('', key='desc_Research', visible=False, size=(30, 6))],
-      [sg.Text('', key='desc_duration', visible=False)],
+      [sg.Text('', key='desc_dauer', visible=False)],
       [sg.Button('Erforschen', key='do_Research', visible=False)],
     ]),
   ],
   [
-    sg.ProgressBar(0, orientation='h', size=(20, 20), key='PROGRESS BAR', visible=False),
-    sg.Button('Erforschen stoppen', key='Cancel_Science', visible=False),
+    sg.ProgressBar(0, orientation='h', size=(20, 20), key='Progressbar', visible=False),
+    sg.Button('Erforschen stoppen', key='Stop_Research', visible=False),
   ],
 ]
 
@@ -150,14 +146,15 @@ LAYOUT = [
     sg.Column([
       [sg.TabGroup([
         [
-          sg.Tab('HQ', lTab_HQ, key='TAB_HQ'),
-          sg.Tab('Forschung', lTab_Science, key='TAB_SCIENCE'),
-          sg.Tab('Inventar', lTab_Inventory, key='TAB_INVENTORY'),
-          sg.Tab('Planeten', lTab_Planets, key='TAB_PLANETS'),
-          sg.Tab('Shop', lTab_Shop, key='TAB_Shop'),
+          sg.Tab('HQ', lTab_HQ, key='TAB_HQ', image_source=r'images\hq.png', image_subsample=config.IMAGE_SUBSAMPLE),
+          sg.Tab('Forschung', lTab_Science, key='TAB_SCIENCE', image_source=r'images\forschung.png', image_subsample=config.IMAGE_SUBSAMPLE),
+          sg.Tab('Inventar', lTab_Inventory, key='TAB_INVENTORY', image_source=r'images\inventar.png', image_subsample=config.IMAGE_SUBSAMPLE),
+          sg.Tab('Planeten', lTab_Planets, key='TAB_PLANETS', image_source=r'images\planeten.png', image_subsample=config.IMAGE_SUBSAMPLE),
+          sg.Tab('Shop', lTab_Shop, key='TAB_SHOP', image_source=r'images\shop.png', image_subsample=config.IMAGE_SUBSAMPLE),
         ]
       ], expand_x=True, expand_y=True)]
     ]),
+    sg.Column([[sg.Image(r'images\hq.png', key='image_Spalte3')]])
   ]
 ]
 
@@ -183,49 +180,56 @@ while True:
 
   if event != '__TIMEOUT__':
     print(f'{event = }')
+    print(f'{values = }')
+
   if event in (sg.WINDOW_CLOSED, 'Exit'):
     break
+
   if event == 'HQ':
     window['TAB_HQ'].select()
+    window['image_Spalte3'].update(filename=r'images\hq.png')
+
   elif event == 'Forschung':
     window['TAB_SCIENCE'].select()
+    window['image_Spalte3'].update(filename=r'images\forschung.png')
+
   elif event == 'Inventar':
     window['TAB_INVENTORY'].select()
+    window['image_Spalte3'].update(filename=r'images\inventar.png')
 
   elif event == 'Planeten':
     window['TAB_PLANETS'].select()
+    window['image_Spalte3'].update(filename=r'images\planeten.png')
 
-  elif 'Erforsche' in event:
-    if 'Eisen' in event:
-      sCurrent_Research = 'Eisen'
-    if 'Rakete' in event:
-      sCurrent_Research = 'rocket'
-    if 'Mondlander' in event:
-      sCurrent_Research = 'Mondlander'
-    if 'Baumaterial' in event:
-      sCurrent_Research = 'Baumaterial'
-    if 'Werkzeug' in event:
-      sCurrent_Research = 'Werkzeug'
+  elif event == 'Shop':
+    window['TAB_SHOP'].select()
+    window['image_Spalte3'].update(filename=r'images\shop.png')
 
+  elif 'Erforsche ' in event:
+    _, sCurrent_Research = event.split(' ')
     show_research(sCurrent_Research)
 
   elif event == 'do_Research':
     do_research(sCurrent_Research)
 
-  elif event == 'Cancel_Science':
-    window['PROGRESS BAR'].update(visible=False)
-    window['Cancel_Science'].update(visible=False)
+  elif event == 'Stop_Research':
+    window['Progressbar'].update(visible=False)
+    window['Stop_Research'].update(visible=False)
     window['do_Research'].update(visible=True)
     bScience_ongoing = False
 
   if bScience_ongoing:
     iCurrent_Value += 1
-    window['PROGRESS BAR'].update(current_count=iCurrent_Value)
+    window['Progressbar'].update(current_count=iCurrent_Value)
     if iCurrent_Value == iMax_Science:
       print('Forschung beendet')
       bScience_ongoing = False
-      inventory[sCurrent_Research] += 1
-      window['TABLEINV'].update(values=[list(INVENTORY.values())])
+      SCIENCE[sCurrent_Research]['erforscht'] = True
+      # window['TABLEINV'].update(values=[list(INVENTORY.values())])
 
-      window['PROGRESS BAR'].update(visible=False)
-      window['Cancel_Science'].update(visible=False)
+      window['Progressbar'].update(visible=False)
+      window['Stop_Research'].update(visible=False)
+
+  if event != '__TIMEOUT__':
+    print(f'ENDE {event = }')
+    print(f'ENDE {values = }')

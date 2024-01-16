@@ -1,23 +1,28 @@
 SCIENCE = {
-  'buildingmaterial': {
-    'description': 'Text Beschreibung buildingmaterial',
-    'duration': 2
+  'Baumaterial': {
+    'beschreibung': 'Text Beschreibung Baumaterial',
+    'dauer': 2,
+    'erforscht': False,
   },
-  'iron': {
-    'description': 'Text Beschreibung iron',
-    'duration': 2
+  'Eisen': {
+    'beschreibung': 'Text Beschreibung Eisen',
+    'dauer': 2,
+    'erforscht': False,
   },
-  'moonlander': {
-    'description': 'Text Beschreibung moonlander',
-    'duration': 10
+  'Mondlander': {
+    'beschreibung': 'Text Beschreibung Mondlander',
+    'dauer': 10,
+    'erforscht': False,
   },
-  'rocket': {
-    'description': 'Text Beschreibung rocket',
-    'duration': 20
+  'Rakete': {
+    'beschreibung': 'Text Beschreibung Rakete',
+    'dauer': 20,
+    'erforscht': False,
   },
-  'tool': {
-    'description': 'Text Beschreibung tool',
-    'duration': 5
+  'Werkzeug': {
+    'beschreibung': 'Text Beschreibung Werkzeug',
+    'dauer': 5,
+    'erforscht': False,
   },
 }
 
