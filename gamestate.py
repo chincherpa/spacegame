@@ -2,6 +2,7 @@ GAMESTATE = {
   'Ticks': 10,
   'Credits': 999,
   'Forschungspunkte': 80,
+
   'Astronauten': {
     'Erde': 10,
     'Mond': 0,
@@ -85,7 +86,7 @@ Flüge mit einer Raumsonde geben Forschungspunkte.
 Sitzplätze: 0
 Frachtplätze: 0
 Kosten Forschungspunkte: 5''',
-      'dauer': 3,
+      'dauer': 0.1,
       'kosten': 10,
       'erforscht': False,
     },
@@ -113,14 +114,73 @@ Kosten Forschungspunkte: 5''',
 
   },
 
+  'Werkstatt': {
+    'Baumaterial': {
+      'beschreibung': 'Text Beschreibung Baumaterial',
+      'dauer': 2,
+      'material': {
+        'Staub': 1,
+        'Wasser': 1
+      },
+    },
+    'Eisenbarren': {
+      'beschreibung': 'Text Beschreibung Eisenbarren',
+      'dauer': 2,
+      'material': {
+        'Roheisen': 1
+      },
+    },
+    'Werkzeug': {
+      'beschreibung': 'Text Beschreibung Eisenbarren',
+      'dauer': 2,
+      'material': {
+        'Eisenbarren': 1,
+        'Wasser': 1
+      },
+    },
+    'Raumsonde': {
+      'beschreibung': 'Text Beschreibung Raumsonde',
+      'dauer': 2,
+      'material': {
+        'Eisenbarren': 1,
+        'Werkzeug': 1
+      },
+    },
+    'Mondlander': {
+      'beschreibung': 'Text Beschreibung Mondlander',
+      'dauer': 2,
+      'material': {
+        'Eisenbarren': 2,
+        'Werkzeug': 1
+      },
+    },
+    'Rakete': {
+      'beschreibung': 'Text Beschreibung Rakete',
+      'dauer': 2,
+      'material': {
+        'Eisenbarren': 3,
+        'Werkzeug': 1
+      },
+    },
+    'Weltraumstation': {
+      'beschreibung': 'Text Beschreibung Weltraumstation',
+      'dauer': 10,
+      'material': {
+        'Mondlander': 5,
+        'Eisenbarren': 30,
+        'Werkzeug': 10
+      },
+    },
+  },
+
   'Inventar': {
-    "Baumaterial": 18,
-    "Staub": 28,
-    "Gold": 38,
-    "Eisen": 48,
-    "Stein": 58,
-    "Werkzeug": 68,
-    "Wasser": 78,
+    'Baumaterial': 18,
+    'Staub': 28,
+    'Gold': 38,
+    'Eisen': 48,
+    'Stein': 58,
+    'Werkzeug': 68,
+    'Wasser': 78,
   },
 
   'Planeten': {
@@ -131,12 +191,14 @@ Kosten Forschungspunkte: 5''',
       }
     },
     'Mond': {
+      'entdeckt': False,
       'Entfernung': {
         'Erde': 1,
         'Mars': 2,
       }
     },
     'Mars': {
+      'entdeckt': False,
       'Entfernung': {
         'Erde': 3,
         'Mond': 2,
