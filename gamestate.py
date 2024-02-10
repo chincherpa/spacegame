@@ -174,13 +174,13 @@ Kosten Forschungspunkte: 5''',
   },
 
   'Inventar': {
-    'Baumaterial': 18,
-    'Staub': 28,
-    'Gold': 38,
-    'Eisen': 48,
-    'Stein': 58,
-    'Werkzeug': 68,
-    'Wasser': 78,
+    'Baumaterial': 0,
+    'Staub': 0,
+    'Gold': 0,
+    'Eisen': 0,
+    'Stein': 0,
+    'Werkzeug': 0,
+    'Wasser': 0,
   },
 
   'Planeten': {

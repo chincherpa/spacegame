@@ -14,10 +14,12 @@ iAktueller_Baufortschritt = None
 
 def load_gamestate():
   try:
-    with open(config.SAVEFILE,"r") as file:
+    with open(config.SAVEFILE, "r") as file:
+      print('config.SAVEFILE gefunden')
       return json.load(file)
   except FileNotFoundError:
     from gamestate import GAMESTATE
+    print('GAMESTATE importiert')
     return GAMESTATE
 
 GAMESTATE = load_gamestate()
@@ -26,6 +28,7 @@ def dump_gamestate():
   GAMESTATE['Ticks'] = fTicks
   GAMESTATE['Credits'] = iCredits
   GAMESTATE['Forschungspunkte'] = iForschungspunkte
+  GAMESTATE['Log'] = lLog
   with open(config.SAVEFILE, "w") as outfile: 
     json.dump(GAMESTATE, outfile)
 
@@ -42,20 +45,20 @@ def zeige_Forschung(sAktuelle_Forschung):
   # if GAMESTATE['Forschung'][sAktuelle_Forschung]['erforscht']:
   window['already_researched'].update(visible=GAMESTATE['Forschung'][sAktuelle_Forschung]['erforscht'])
 
-def zeige_bauen(sBauen):
-  window['desc_bauen'].update(value=GAMESTATE['Werkstatt'][sBauen]['beschreibung'])
-  window['desc_bauen'].update(value=f'Dauer: {GAMESTATE['Werkstatt'][sBauen]['dauer']} Zyklen')
+def zeige_bauen(sAktuelles_Bauen):
+  window['desc_bauen'].update(value=GAMESTATE['Werkstatt'][sAktuelles_Bauen]['beschreibung'])
+  window['desc_bauen'].update(value=f'Dauer: {GAMESTATE['Werkstatt'][sAktuelles_Bauen]['dauer']} Zyklen')
 
-def baue(sBauen):
+def baue(sAktuelles_Bauen):
   global bBauen_aktiv
   global iAktueller_Baufortschritt
   global iMax_Bauen
   window['do_research'].update(visible=False)
   bBauen_aktiv = True
-  iMax_Bauen = GAMESTATE['Forschung'][sAktuelle_Forschung]['dauer'] / config.TICK
-  iAktueller_Forschungsfortschritt = 0
-  window['progressbar_Forschung'].update(current_count=0, max=iMax_Bauen)
-  window['progressbar_Forschung'].update(visible=True)
+  iMax_Bauen = GAMESTATE['Werkstatt'][sAktuelles_Bauen]['dauer'] / config.TICK
+  iAktueller_Baufortschritt = 0
+  window['progressbar_Bauen'].update(current_count=0, max=iMax_Bauen)
+  window['progressbar_Bauen'].update(visible=True)
   window['stop_research'].update(visible=True)
 
 def erforsche(sAktuelle_Forschung):
@@ -83,8 +86,10 @@ def get_amounts_from_inventory():
   return lAmounts
 
 def add2log(sString):
+  global lLog
   global sLog
-  sLog = f"{round(fTicks, 1)}\t{sString}\n" + sLog
+  lLog.append(f"{round(fTicks, 1)}\t{sString}")
+  sLog = '\n'.join(lLog[::-1])
   window['Log'].update(value=sLog)
 
 menu_def = [['&File', ['&Load', '&Save']]]
@@ -103,28 +108,28 @@ lTab_Forschung = [
   [
     sg.Column([
       [
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Baumaterial']['erforscht'], key='img_Baumaterial'),
-        sg.Button(button_text='Erforsche Baumaterial', visible=GAMESTATE['Forschung']['Eisenbarren']['erforscht'])
+        sg.Button(button_text='Erforsche Baumaterial', visible=GAMESTATE['Forschung']['Eisenbarren']['erforscht']),
+        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Baumaterial']['erforscht'], key='img_Baumaterial')
       ],
       [
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Eisenbarren']['erforscht'], key='img_Eisenbarren'),
-        sg.Button(button_text='Erforsche Eisenbarren')
+        sg.Button(button_text='Erforsche Eisenbarren', key='Erforsche Eisenbarren'),
+        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Eisenbarren']['erforscht'], key='img_Eisenbarren')
       ],
       [
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Mondlander']['erforscht'], key='img_Mondlander'),
-        sg.Button(button_text='Erforsche Mondlander', visible=GAMESTATE['Forschung']['Raumsonde']['erforscht'])
+        sg.Button(button_text='Erforsche Mondlander', visible=GAMESTATE['Forschung']['Raumsonde']['erforscht']),
+        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Mondlander']['erforscht'], key='img_Mondlander')
       ],
       [
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Rakete']['erforscht'], key='img_Rakete'),
-        sg.Button(button_text='Erforsche Rakete', visible=GAMESTATE['Forschung']['Mondlander']['erforscht'])
+        sg.Button(button_text='Erforsche Rakete', visible=GAMESTATE['Forschung']['Mondlander']['erforscht']),
+        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Rakete']['erforscht'], key='img_Rakete')
       ],
       [
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Raumsonde']['erforscht'], key='img_Raumsonde'),
-        sg.Button(button_text='Erforsche Raumsonde')
+        sg.Button(button_text='Erforsche Raumsonde'),
+        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Raumsonde']['erforscht'], key='img_Raumsonde')
       ],
       [
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Werkzeug']['erforscht'], key='img_Werkzeug'),
-        sg.Button(button_text='Erforsche Werkzeug', visible=GAMESTATE['Forschung']['Eisenbarren']['erforscht'])
+        sg.Button(button_text='Erforsche Werkzeug', visible=GAMESTATE['Forschung']['Eisenbarren']['erforscht']),
+        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Werkzeug']['erforscht'], key='img_Werkzeug')
       ],
     ]),
     sg.VerticalSeparator(),
@@ -217,7 +222,8 @@ lTab_Shop = [
   ],
 ]
 
-sLog = '\n'.join(GAMESTATE['Log'])
+lLog = GAMESTATE['Log']
+sLog = '\n'.join(lLog[::-1])
 print(sLog)
 
 LAYOUT = [[sg.Menu(menu_def, )],
@@ -315,8 +321,8 @@ while True:
     zeige_Forschung(sAktuelle_Forschung)
 
   elif 'Baue ' in event:
-    _, sBauen = event.split(' ')
-    baue(sBauen)
+    _, sAktuelles_Bauen = event.split(' ')
+    baue(sAktuelles_Bauen)
 
   elif event == 'do_research':
     add2log(f"Erforsche '{sAktuelle_Forschung}'")
@@ -330,8 +336,8 @@ while True:
     bForschung_aktiv = False
 
   elif event == 'starte_bauen':
-    add2log(f"Baue '{sBauen}'")
-    baue(sBauen)
+    add2log(f"Baue '{sAktuelles_Bauen}'")
+    baue(sAktuelles_Bauen)
 
   elif event == 'stop_bauen':
     print('stop_bauen')
@@ -363,23 +369,24 @@ while True:
       window['already_researched'].update(visible=True)
       window[f'img_{sAktuelle_Forschung}'].update(visible=True)
       for sForschung in lForschung_auf_Erde:
-        window[f'baue_{sForschung}'].update(visible=GAMESTATE['Forschung'][sForschung]['erforscht'])
+        if GAMESTATE['Forschung'][sForschung]['erforscht']:
+          window[f'Erforsche {sForschung}'].update(visible=True)
+          window[f'Erforsche {sForschung}'].update(button_color = ('black','green'))
+          # window[f'Erforsche {sAktuelle_Forschung}'].update(button_color = ('black','green'))
 
       # window.refresh()
 
   if bBauen_aktiv:
-    iAktueller_Forschungsfortschritt += 1
-    # window['progressbar_Bauen'].update(current_count=iAktueller_Forschungsfortschritt)
-    # if iAktueller_Forschungsfortschritt == iMax_Forschung:
-    #   print(f"Forschung von '{sAktuelle_Forschung}' beendet")
-    #   sLog = f"Forschung von '{sAktuelle_Forschung}' beendet\n" + sLog
-    #   window['Log'].update(value=sLog)
-    #   bForschung_aktiv = False
-    #   GAMESTATE['Forschung'][sAktuelle_Forschung]['erforscht'] = True
+    iAktueller_Baufortschritt += 1
+    window['progressbar_Bauen'].update(current_count=iAktueller_Baufortschritt)
+    if iAktueller_Baufortschritt == iMax_Bauen:
+      GAMESTATE['Werkstatt'][sAktuelles_Bauen] += 1
+      add2log(f"Herstellung von '{sAktuelles_Bauen}' beendet")
+      bBauen_aktiv = False
 
-    #   window['progressbar_Bauen'].update(visible=False)
+      window['progressbar_Bauen'].update(visible=False)
     #   window['stop_research'].update(visible=False)
-    #   window[f'img_{sAktuelle_Forschung}'].update(visible=True)
+    #   window[f'img_{sAktuelles_Bauen}'].update(visible=True)
     #   for sForschung in lForschung_auf_Erde:
     #     window[f'baue_{sForschung}'].update(visible=GAMESTATE['Forschung'][sForschung]['erforscht'])
 
