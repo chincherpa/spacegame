@@ -1,7 +1,7 @@
 GAMESTATE = {
-  'Ticks': 10,
-  'Credits': 999,
-  'Forschungspunkte': 80,
+  'Ticks': 0,
+  'Credits': 50,
+  'Forschungspunkte': 20,
 
   'Astronauten': {
     'Erde': 10,
@@ -175,12 +175,15 @@ Kosten Forschungspunkte: 5''',
 
   'Inventar': {
     'Baumaterial': 0,
-    'Staub': 0,
+    'Eisenbarren': 0,  # Hinzugefügt
+    'Roheisen': 10,    # Hinzugefügt für Eisenbarren-Produktion
+    'Staub': 5,        # Hinzugefügt für Baumaterial
     'Gold': 0,
     'Eisen': 0,
     'Stein': 0,
     'Werkzeug': 0,
-    'Wasser': 0,
+    'Wasser': 10,      # Erhöht für Produktion
+    'Raumsonde': 0,    # Hinzugefügt
   },
 
   'Planeten': {
