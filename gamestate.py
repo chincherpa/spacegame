@@ -1,7 +1,7 @@
 GAMESTATE = {
   'Ticks': 0,
-  'Credits': 50,
-  'Forschungspunkte': 20,
+  'Credits': 10,
+  'Forschungspunkte': 0,
 
   'Astronauten': {
     'Erde': 10,
@@ -43,75 +43,41 @@ GAMESTATE = {
   },
 
   'Forschung': {
-    'Baumaterial': {
-      'beschreibung': 'Erforsche das Herstellen von Baumaterial aus den auf dem Mond verfügbaren Ressourcen. Mit Baumaterial kannst du Weltraumstationen bauen.',
-      'dauer': 3,
-      'kosten': 10,
-      'erforscht': False,
-    },
-
     'Eisenbarren': {
-      'beschreibung': 'Erforsche die Produktion von Eisenbarren. Aus Eisenbarren kannst du Baumaterial und Werkzeug herstellen',
-      'dauer': 0.5,
-      'kosten': 10,
       'erforscht': False,
     },
 
-    'Mondlander': {
-      'beschreibung': '''Mit dem Mondlander kannst du zum Mond fliegen.
-
-Sitzplätze: 2
-Frachtplätze: 3
-Kosten Forschungspunkte: 10''',
-      'dauer': 10,
-      'kosten': 10,
-      'erforscht': False,
-    },
-
-    'Rakete': {
-      'beschreibung': '''Erforsche den Bau einer Rakete. Mit einer Rakete kannst du zu Planeten fliegen.
-
-Sitzplätze: 5
-Frachtplätze: 6
-Kosten Forschungspunkte: 20''',
-      'dauer': 20,
-      'kosten': 10,
-      'erforscht': False,
-    },
-
-    'Raumsonde': {
-      'beschreibung': '''Erforsche den Bau einer Raumsonde. Mit einer Raumsonde kannst du den Weltraum erforschen und andere Planeten entdecken.
-Flüge mit einer Raumsonde geben Forschungspunkte.
-
-Sitzplätze: 0
-Frachtplätze: 0
-Kosten Forschungspunkte: 5''',
-      'dauer': 0.1,
-      'kosten': 10,
+    'Baumaterial': {
       'erforscht': False,
     },
 
     'Werkzeug': {
-      'beschreibung': 'Erforsche die Herstellung von Werkzeug aus Eisenbarren. Mit Werkzeug und Baumaterial kannst du eine Weltraumstation bauen.',
-      'dauer': 5,
-      'kosten': 10,
+      'erforscht': False,
+    },
+
+    'Treibstoff': {
+      'erforscht': False,
+    },
+
+    'Raumsonde': {
+      'erforscht': False,
+    },
+
+    'Mondlander': {
+      'erforscht': False,
+    },
+
+    'Rakete': {
+      'erforscht': False,
+    },
+
+    'Mondbasen Bauplan': {
       'erforscht': False,
     },
 
     'Weltraumstation': {
-      'beschreibung': 'Erforsche den Bau einer Weltraumstation.',
-      'dauer': 5,
-      'kosten': 10,
       'erforscht': False,
     },
-
-  # 'Treibstoff': {
-  #   'beschreibung': 'Erforschung der Herstellung von Treibstoff aus den auf dem Mond verfügbaren Ressourcen',
-  #   'dauer': 6,
-  #   'kosten': 10,
-  #   'erforscht': False,
-  #   },
-
   },
 
   'Werkstatt': {
@@ -142,24 +108,24 @@ Kosten Forschungspunkte: 5''',
       'beschreibung': 'Text Beschreibung Raumsonde',
       'dauer': 2,
       'material': {
-        'Eisenbarren': 1,
-        'Werkzeug': 1
+        'Eisenbarren': 5,
+        'Werkzeug': 5
       },
     },
     'Mondlander': {
       'beschreibung': 'Text Beschreibung Mondlander',
       'dauer': 2,
       'material': {
-        'Eisenbarren': 2,
-        'Werkzeug': 1
+        'Eisenbarren': 10,
+        'Werkzeug': 10
       },
     },
     'Rakete': {
       'beschreibung': 'Text Beschreibung Rakete',
       'dauer': 2,
       'material': {
-        'Eisenbarren': 3,
-        'Werkzeug': 1
+        'Eisenbarren': 30,
+        'Werkzeug': 20
       },
     },
     'Weltraumstation': {
@@ -167,7 +133,7 @@ Kosten Forschungspunkte: 5''',
       'dauer': 10,
       'material': {
         'Mondlander': 5,
-        'Eisenbarren': 30,
+        'Eisenbarren': 100,
         'Werkzeug': 10
       },
     },
@@ -211,4 +177,43 @@ Kosten Forschungspunkte: 5''',
 
   'Log': ['Spiel gestartet'],
 
+  'Mondmissionen': {
+      'Erkundung und Probenentnahme': {
+          'erforscht': False,
+      },
+      'Konstruktion und Reparatur von Strukturen': {
+          'erforscht': False,
+          'benötigt_baumaterial': 3,
+      },
+      'Navigation und Anpassung an die geringere Schwerkraft': {
+          'erforscht': False,
+      },
+      'Raumfahrttechnik und -navigation': {
+          'erforscht': False,
+      },
+      'Geologische Untersuchungen': {
+          'erforscht': False,
+      },
+      'Lebenserhaltungssysteme': {
+          'erforscht': False,
+      },
+      'Kommunikation und Datenübertragung': {
+          'erforscht': False,
+      },
+      'Mondbasen-Design': {
+          'erforscht': False,
+      }
+  },
+
+  # Erweitern Sie auch das Inventar:
+  'Inventar': {
+      # ... bestehende Einträge ...
+      'Mondgestein': 0,
+      'Seltene_Mineralien': 0,
+      'Mondstation_Modul': 0,
+      'Astronaut_Erfahrung': 0,
+      'Lebenserhaltung_Upgrade': 0,
+      'Kommunikations_Upgrade': 0,
+      'Mondbasen Bauplan': 0,
+  }
 }

@@ -4,13 +4,15 @@ import PySimpleGUI as sg
 
 import config
 from actions import ACTIONS
+from materials import MATERIALS
+from science import SCIENCE
 
 sg.theme('Dark Teal 6')
 
 # Todo
 #   Das Bau-System reparieren und vervollständigen?
 #   Reisen zwischen Planeten implementieren?
-# Die Mondmissionen aus actions.py integrieren?
+#   Die Mondmissionen aus actions.py integrieren?
 # Das Interface verbessern?
 # Ressourcenabbau-System hinzufügen?
 #   die dynamische Inventar-Anzeige implementiere
@@ -24,6 +26,12 @@ bBauen_aktiv = False
 iAktueller_Baufortschritt = None
 sAktuelles_Bauen = None
 iMax_Bauen = None
+
+# Globale Variablen für Mondmissionen
+bMondmission_aktiv = False
+iAktueller_Mondmissionsfortschritt = 0
+sAktuelle_Mondmission = None
+iMax_Mondmission = None
 
 def load_gamestate():
   try:
@@ -43,14 +51,14 @@ def dump_gamestate():
   GAMESTATE['Forschungspunkte'] = iForschungspunkte
   GAMESTATE['Log'] = lLog
   with open(config.SAVEFILE, "w") as outfile: 
-    json.dump(GAMESTATE, outfile)
+    json.dump(GAMESTATE, outfile, indent=2)
 
 def zeige_Forschung(sAktuelle_Forschung):
   window['do_research'].update(visible=False)
   window['already_researched'].update(visible=False)
 
-  window['desc_research'].update(visible=True, value=GAMESTATE['Forschung'][sAktuelle_Forschung]['beschreibung'])
-  window['desc_dauer'].update(visible=True, value=f"Forschungsdauer: {GAMESTATE['Forschung'][sAktuelle_Forschung]['dauer']} Zyklen")
+  window['desc_research'].update(visible=True, value=SCIENCE[sAktuelle_Forschung]['beschreibung'])
+  window['desc_dauer'].update(visible=True, value=f"Forschungsdauer: {SCIENCE[sAktuelle_Forschung]['dauer']} Zyklen")
 
   if not bForschung_aktiv and not GAMESTATE['Forschung'][sAktuelle_Forschung]['erforscht']:
     window['do_research'].update(visible=True)
@@ -175,7 +183,7 @@ def erforsche(sAktuelle_Forschung):
   global iMax_Forschung
   window['do_research'].update(visible=False)
   bForschung_aktiv = True
-  iMax_Forschung = GAMESTATE['Forschung'][sAktuelle_Forschung]['dauer'] / config.TICK
+  iMax_Forschung = SCIENCE[sAktuelle_Forschung]['dauer'] / config.TICK
   iAktueller_Forschungsfortschritt = 0
   window['progressbar_Forschung'].update(current_count=0, max=iMax_Forschung)
   window['progressbar_Forschung'].update(visible=True)
@@ -230,22 +238,7 @@ def erstelle_inventar_layout():
 
 def get_material_beschreibung(material):
     """Gibt eine Beschreibung für jedes Material zurück"""
-    beschreibungen = {
-        'Baumaterial': 'Für Konstruktionen verwendet',
-        'Eisenbarren': 'Verarbeitetes Eisen für Werkzeuge',
-        'Roheisen': 'Rohes Eisenerz vom Mond',
-        'Staub': 'Mondstaub für Baumaterial',
-        'Gold': 'Wertvolles Metall',
-        'Eisen': 'Eisenerz',
-        'Stein': 'Gestein vom Mond',
-        'Werkzeug': 'Für komplexe Konstruktionen',
-        'Wasser': 'Für Lebenserhaltung und Produktion',
-        'Raumsonde': 'Für Weltraumerkundung',
-        'Mondlander': 'Transportschiff zum Mond',
-        'Rakete': 'Schweres Transportschiff',
-        'Weltraumstation': 'Große Raumstation'
-    }
-    return beschreibungen.get(material, 'Unbekanntes Material')
+    return MATERIALS.get(material, 'Unbekanntes Material')
 
 def aktualisiere_inventar_anzeige():
     """Aktualisiert die Inventar-Anzeige dynamisch"""
@@ -322,7 +315,7 @@ def berechne_inventar_statistiken():
     
     # Materialwerte (beispielhaft)
     materialwerte = {
-        'Eisenbarren': 50,
+        'Eisenbarren': 9999999,
         'Baumaterial': 100,
         'Werkzeug': 200,
         'Roheisen': 20,
@@ -587,6 +580,218 @@ def erstelle_reise_interface():
 # Neues Tab für Reisen
 lTab_Reisen = erstelle_reise_interface()
 
+def zeige_mondmission(sAktuelle_Mission):
+    """Zeigt Informationen zur ausgewählten Mondmission"""
+    window['do_mondmission'].update(visible=False)
+    window['mondmission_completed'].update(visible=False)
+    
+    mission = ACTIONS[sAktuelle_Mission]
+    
+    # Beschreibung und Dauer anzeigen
+    window['desc_mondmission'].update(
+        visible=True, 
+        value=f"{mission['beschreibung']}\n\nDauer: {mission['dauer']} Zyklen\nKosten: {mission['kosten']} Credits"
+    )
+    
+    # Anforderungen anzeigen
+    anforderungen_text = "Anforderungen:\n"
+    for key, value in mission.items():
+        if key.startswith('benötigt_'):
+            ressource = key.replace('benötigt_', '').replace('_', ' ').title()
+            verfügbar = GAMESTATE['Inventar'].get(key.replace('benötigt_', '').title(), 0)
+            if key == 'benötigt_astronauten':
+                verfügbar = GAMESTATE['Astronauten']['Mond']
+            anforderungen_text += f"• {ressource}: {value} (verfügbar: {verfügbar})\n"
+    
+    # Belohnungen anzeigen
+    belohnungen_text = "\nBelohnungen:\n"
+    for belohnung, wert in mission['belohnung'].items():
+        belohnungen_text += f"• {belohnung.replace('_', ' ')}: {wert}\n"
+    
+    window['desc_mondmission_anforderungen'].update(
+        value=anforderungen_text + belohnungen_text, 
+        visible=True
+    )
+    
+    # Prüfen ob Mission durchführbar ist
+    kann_mission = True
+    grund = ""
+    
+    # Prüfen ob auf dem Mond
+    if GAMESTATE['Astronauten']['Mond'] == 0:
+        kann_mission = False
+        grund = "Keine Astronauten auf dem Mond!"
+    
+    # Prüfen ob genug Credits
+    elif iCredits < mission['kosten']:
+        kann_mission = False
+        grund = "Nicht genug Credits!"
+    
+    # Prüfen ob Mission bereits abgeschlossen
+    elif mission['erforscht']:
+        kann_mission = False
+        grund = "Mission bereits abgeschlossen!"
+        window['mondmission_completed'].update(visible=True)
+    
+    # Prüfen ob Anforderungen erfüllt sind
+    else:
+        for key, value in mission.items():
+            if key.startswith('benötigt_'):
+                if key == 'benötigt_astronauten':
+                    if GAMESTATE['Astronauten']['Mond'] < value:
+                        kann_mission = False
+                        grund = f"Nicht genug Astronauten auf dem Mond (benötigt: {value})"
+                        break
+                else:
+                    ressource = key.replace('benötigt_', '').title()
+                    if GAMESTATE['Inventar'].get(ressource, 0) < value:
+                        kann_mission = False
+                        grund = f"Nicht genug {ressource} (benötigt: {value})"
+                        break
+    
+    # Mission-Button anzeigen/verstecken
+    if kann_mission and not bMondmission_aktiv:
+        window['do_mondmission'].update(visible=True)
+        window['mondmission_unmöglich'].update(visible=False)
+    else:
+        window['do_mondmission'].update(visible=False)
+        if grund:
+            window['mondmission_unmöglich'].update(visible=True, value=grund)
+        else:
+            window['mondmission_unmöglich'].update(visible=False)
+
+def starte_mondmission(sAktuelle_Mission):
+    """Startet eine Mondmission"""
+    global bMondmission_aktiv, iAktueller_Mondmissionsfortschritt, iMax_Mondmission
+    
+    mission = ACTIONS[sAktuelle_Mission]
+    
+    # Credits sofort abziehen
+    global iCredits
+    iCredits -= mission['kosten']
+    
+    # Ressourcen sofort abziehen
+    for key, value in mission.items():
+        if key.startswith('benötigt_') and key != 'benötigt_astronauten':
+            ressource = key.replace('benötigt_', '').title()
+            GAMESTATE['Inventar'][ressource] -= value
+    
+    # Mission-Prozess starten
+    bMondmission_aktiv = True
+    iMax_Mondmission = int(mission['dauer'] / config.TICK)
+    iAktueller_Mondmissionsfortschritt = 0
+    
+    # UI aktualisieren
+    window['do_mondmission'].update(visible=False)
+    window['mondmission_unmöglich'].update(visible=False)
+    window['progressbar_Mondmission'].update(current_count=0, max=iMax_Mondmission, visible=True)
+    window['stop_mondmission'].update(visible=True)
+    
+    # Inventar-Anzeige aktualisieren
+    aktualisiere_inventar_anzeige()
+    
+    add2log(f"Mondmission '{sAktuelle_Mission}' gestartet")
+
+def beende_mondmission(sAktuelle_Mission):
+    """Beendet eine Mondmission erfolgreich"""
+    global bMondmission_aktiv, iCredits, iForschungspunkte
+    
+    mission = ACTIONS[sAktuelle_Mission]
+    
+    # Belohnungen vergeben
+    for belohnung, wert in mission['belohnung'].items():
+        if belohnung == 'Forschungspunkte':
+            iForschungspunkte += wert
+        elif belohnung == 'Credits':
+            iCredits += wert
+        else:
+            # Andere Belohnungen ins Inventar
+            if belohnung not in GAMESTATE['Inventar']:
+                GAMESTATE['Inventar'][belohnung] = 0
+            GAMESTATE['Inventar'][belohnung] += wert
+    
+    # Mission als abgeschlossen markieren
+    ACTIONS[sAktuelle_Mission]['erforscht'] = True
+    
+    # Mission-Prozess beenden
+    bMondmission_aktiv = False
+    window['progressbar_Mondmission'].update(visible=False)
+    window['stop_mondmission'].update(visible=False)
+    window['mondmission_completed'].update(visible=True)
+    
+    # UI aktualisieren
+    aktualisiere_inventar_anzeige()
+    
+    add2log(f"Mondmission '{sAktuelle_Mission}' erfolgreich abgeschlossen!")
+    
+    # Belohnungen loggen
+    belohnungen_text = "Belohnungen erhalten: "
+    for belohnung, wert in mission['belohnung'].items():
+        belohnungen_text += f"{belohnung.replace('_', ' ')}: {wert}, "
+    add2log(belohnungen_text[:-2])
+
+def stoppe_mondmission():
+    """Stoppt eine Mondmission und gibt Ressourcen zurück"""
+    global bMondmission_aktiv, iCredits
+    
+    if bMondmission_aktiv and sAktuelle_Mondmission:
+        mission = ACTIONS[sAktuelle_Mondmission]
+        
+        # Credits zurückgeben
+        iCredits += mission['kosten']
+        
+        # Ressourcen zurückgeben
+        for key, value in mission.items():
+            if key.startswith('benötigt_') and key != 'benötigt_astronauten':
+                ressource = key.replace('benötigt_', '').title()
+                GAMESTATE['Inventar'][ressource] += value
+        
+        bMondmission_aktiv = False
+        window['progressbar_Mondmission'].update(visible=False)
+        window['stop_mondmission'].update(visible=False)
+        
+        aktualisiere_inventar_anzeige()
+        zeige_mondmission(sAktuelle_Mondmission)
+        
+        add2log(f"Mondmission '{sAktuelle_Mondmission}' abgebrochen - Ressourcen zurückgegeben")
+
+# Neue Tab für Mondmissionen
+def erstelle_mondmission_tab():
+    """Erstellt das Tab für Mondmissionen"""
+    return [
+        [sg.Text('Mondmissionen', font=('Arial', 12, 'bold'))],
+        [sg.Text('Nur verfügbar wenn Astronauten auf dem Mond sind', font=('Arial', 10, 'italic'))],
+        [sg.HorizontalSeparator()],
+        
+        [
+            sg.Column([
+                [sg.Button('Erkundung und Probenentnahme', key='mondmission_Erkundung und Probenentnahme')],
+                [sg.Button('Konstruktion und Reparatur', key='mondmission_Konstruktion und Reparatur von Strukturen')],
+                [sg.Button('Navigation und Schwerkraft', key='mondmission_Navigation und Anpassung an die geringere Schwerkraft')],
+                [sg.Button('Raumfahrttechnik', key='mondmission_Raumfahrttechnik und -navigation')],
+                [sg.Button('Geologische Untersuchungen', key='mondmission_Geologische Untersuchungen')],
+                [sg.Button('Lebenserhaltungssysteme', key='mondmission_Lebenserhaltungssysteme')],
+                [sg.Button('Kommunikation', key='mondmission_Kommunikation und Datenübertragung')],
+                [sg.Button('Mondbasen-Design', key='mondmission_Mondbasen-Design')],
+            ], vertical_alignment='top'),
+            
+            sg.VerticalSeparator(),
+            
+            sg.Column([
+                [sg.Text('', key='desc_mondmission', size=(50, 6), visible=False)],
+                [sg.Text('', key='desc_mondmission_anforderungen', size=(50, 8), visible=False)],
+                [sg.Button('Mission starten', key='do_mondmission', visible=False)],
+                [sg.Text('', key='mondmission_unmöglich', visible=False, text_color='red')],
+                [sg.Text('Mission abgeschlossen', key='mondmission_completed', visible=False, text_color='green')],
+                [sg.ProgressBar(0, orientation='h', size=(40, 20), key='progressbar_Mondmission', visible=False)],
+                [sg.Button('Mission stoppen', key='stop_mondmission', visible=False)],
+            ], vertical_alignment='top'),
+        ],
+    ]
+
+# Fügen Sie das neue Tab zur LAYOUT-Definition hinzu:
+lTab_Mondmissionen = erstelle_mondmission_tab()
+
 # NEW ENDE
 
 menu_def = [['&File', ['&Load', '&Save']]]
@@ -619,29 +824,10 @@ lTab_Forschung = [
   [
     sg.Column([
       [
-        sg.Button(button_text='Eisenbarren', key='Erforsche Eisenbarren'),
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Eisenbarren']['erforscht'], key='img_Eisenbarren')
-      ],
-      [
-        sg.Button(button_text='Baumaterial', key='Erforsche Baumaterial', visible=GAMESTATE['Forschung']['Eisenbarren']['erforscht']),
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Baumaterial']['erforscht'], key='img_Baumaterial')
-      ],
-      [
-        sg.Button(button_text='Werkzeug', key='Erforsche Werkzeug', visible=GAMESTATE['Forschung']['Eisenbarren']['erforscht']),
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Werkzeug']['erforscht'], key='img_Werkzeug')
-      ],
-      [
-        sg.Button(button_text='Raumsonde', key='Erforsche Raumsonde', visible=GAMESTATE['Forschung']['Baumaterial']['erforscht']),
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Raumsonde']['erforscht'], key='img_Raumsonde')
-      ],
-      [
-        sg.Button(button_text='Mondlander', key='Erforsche Mondlander', visible=GAMESTATE['Forschung']['Raumsonde']['erforscht']),
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Mondlander']['erforscht'], key='img_Mondlander')
-      ],
-      [
-        sg.Button(button_text='Rakete', key='Erforsche Rakete', visible=GAMESTATE['Forschung']['Mondlander']['erforscht']),
-        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung']['Rakete']['erforscht'], key='img_Rakete')
-      ],
+        sg.Button(button_text=name, key=f'Erforsche {name}', visible=not data.get('erforschbar nach', '') or GAMESTATE['Forschung'][data.get('erforschbar nach', '')]['erforscht']),
+        sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung'][name]['erforscht'], key=f'img_{name}')
+      ]
+      for name, data in SCIENCE.items()
     ]),
     sg.VerticalSeparator(),
     sg.Column([
@@ -651,10 +837,10 @@ lTab_Forschung = [
         sg.Button('Erforschen', key='do_research', visible=False),
         sg.Text('erforscht', key='already_researched', visible=False)
       ],
-  [
-    sg.ProgressBar(0, orientation='h', size=(20, 20), key='progressbar_Forschung', visible=False),
-    sg.Button('Erforschen stoppen', key='stop_research', visible=False),
-  ],
+      [
+        sg.ProgressBar(0, orientation='h', size=(20, 20), key='progressbar_Forschung', visible=False),
+        sg.Button('Erforschen stoppen', key='stop_research', visible=False),
+      ],
     ]),
   ],
 ]
@@ -782,7 +968,8 @@ LAYOUT = [[sg.Menu(menu_def, )],
       [sg.TabGroup([
         [
             sg.Tab('HQ', lTab_HQ, key='TAB_HQ', image_source=r'images\TAB_HQ.png', image_subsample=config.IMAGE_SUBSAMPLE),
-            sg.Tab('Reisen', lTab_Reisen, key='TAB_REISEN', image_source=r'images\TAB_REISEN.png', image_subsample=config.IMAGE_SUBSAMPLE),
+            sg.Tab('Reisen', lTab_Reisen, key='TAB_REISEN', image_source=r'images\TAB_REISEN.png', image_subsample=config.IMAGE_SUBSAMPLE, visible=GAMESTATE['Forschung']['Mondlander']['erforscht']),
+            sg.Tab('Mondmissionen', lTab_Mondmissionen, key='TAB_MONDMISSIONEN', image_source=r'images\TAB_MONDMISSIONEN.png', image_subsample=config.IMAGE_SUBSAMPLE, visible=GAMESTATE['Forschung']['Raumsonde']['erforscht']),
             sg.Tab('Forschung', lTab_Forschung, key='TAB_FORSCHUNG', image_source=r'images\TAB_FORSCHUNG.png', image_subsample=config.IMAGE_SUBSAMPLE),
             sg.Tab('Werkstatt', lTab_Werkstatt, key='TAB_WERKSTATT', image_source=r'images\TAB_WERKSTATT.png', image_subsample=config.IMAGE_SUBSAMPLE),
             sg.Tab('Inventar', lTab_Inventory, key='TAB_INVENTAR', image_source=r'images\TAB_INVENTAR.png', image_subsample=config.IMAGE_SUBSAMPLE),
@@ -809,12 +996,10 @@ fTicks = GAMESTATE['Ticks']
 iCredits = GAMESTATE['Credits']
 iForschungspunkte = GAMESTATE['Forschungspunkte']
 inventory = GAMESTATE['Inventar']
-
-sAktuelle_Forschung = list(GAMESTATE['Forschung'].keys())[0]
+sAktuelle_Forschung = list(SCIENCE.keys())[0]
 
 # window = sg.Window(config.TITLE, LAYOUT, size=config.WINDOW_SIZE, resizable=True)
 window = sg.Window(config.TITLE, LAYOUT, size=config.WINDOW_SIZE, resizable=True, finalize=True)
-
 
 # Bei Spielstart einmalig ausführen:
 aktualisiere_inventar_anzeige()
@@ -902,7 +1087,7 @@ while True:
 
   elif event == 'refreshwindow':
     print('window.refresh()')
-    print(GAMESTATE['Forschung'][sAktuelle_Forschung])
+    print(SCIENCE[sAktuelle_Forschung])
     window.refresh()
 
   elif event.startswith('baue_'):
@@ -956,6 +1141,16 @@ while True:
       if von_planet and zu_planet and raumschiff_typ:
           starte_reise(raumschiff_typ, von_planet, zu_planet, astronauten_anzahl, fracht_dict)
 
+  elif event.startswith('mondmission_'):
+    sAktuelle_Mondmission = event.replace('mondmission_', '')
+    zeige_mondmission(sAktuelle_Mondmission)
+
+  elif event == 'do_mondmission':
+    starte_mondmission(sAktuelle_Mondmission)
+
+  elif event == 'stop_mondmission':
+    stoppe_mondmission()
+
   if bForschung_aktiv:
     iAktueller_Forschungsfortschritt += 1
     window['progressbar_Forschung'].update(current_count=iAktueller_Forschungsfortschritt)
@@ -999,6 +1194,12 @@ while True:
     if fTicks % 2 == 0:  # Jede 2. Sekunde
       iCredits += 1
       print('gif credit')
+
+    if bMondmission_aktiv:
+      iAktueller_Mondmissionsfortschritt += 1
+      window['progressbar_Mondmission'].update(current_count=iAktueller_Mondmissionsfortschritt)
+      if iAktueller_Mondmissionsfortschritt >= iMax_Mondmission:
+        beende_mondmission(sAktuelle_Mondmission)
 
   if event != '__TIMEOUT__':
     # Inventar nur aktualisieren wenn sich etwas geändert haben könnte
