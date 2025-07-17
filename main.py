@@ -380,11 +380,12 @@ def get_verfuegbare_raumschiffe(planet):
 
 def get_raumschiff_kapazitaet(raumschiff_typ):
     """Gibt die Kapazitäten eines Raumschiffs zurück"""
-    kapazitaeten = {
-        'Mondlander': {'astronauten': 2, 'fracht': 3, 'reichweite': 1},
-        'Rakete': {'astronauten': 5, 'fracht': 6, 'reichweite': 3}
-    }
-    return kapazitaeten.get(raumschiff_typ, {'astronauten': 0, 'fracht': 0, 'reichweite': 0})
+    eintrag = SCIENCE.get(raumschiff_typ, {})
+    astronauten = eintrag.get('Sitzplätze', 0)
+    fracht = eintrag.get('Frachtplätze', 0)
+    # Reichweite kann optional gesetzt werden, falls im SCIENCE vorhanden
+    reichweite = eintrag.get('reichweite', 0)
+    return {'astronauten': astronauten, 'fracht': fracht, 'reichweite': reichweite}
 
 def kann_reisen(von_planet, zu_planet, raumschiff_typ):
     """Prüft ob eine Reise möglich ist"""
