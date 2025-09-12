@@ -1,0 +1,191 @@
+{
+  "Ticks": 70,
+  "Credits": 10,
+  "Forschungspunkte": 68,
+  "Astronauten": {
+    "Erde": 10,
+    "Mond": 0,
+    "Mars": 0
+  },
+  "Arbeiter": {
+    "Erde": 10,
+    "Mond": 0,
+    "Mars": 0
+  },
+  "Raumschiffe": {
+    "Erde": {
+      "Mondlander": {
+        "Anzahl": 0
+      },
+      "Rakete": {
+        "Anzahl": 0
+      }
+    },
+    "Mond": {
+      "Mondlander": {
+        "Anzahl": 0
+      },
+      "Rakete": {
+        "Anzahl": 0
+      }
+    },
+    "Mars": {
+      "Mondlander": {
+        "Anzahl": 0
+      },
+      "Rakete": {
+        "Anzahl": 0
+      }
+    }
+  },
+  "Forschung": {
+    "Eisenbarren": {
+      "erforscht": true
+    },
+    "Baumaterial": {
+      "erforscht": false
+    },
+    "Werkzeug": {
+      "erforscht": false
+    },
+    "Treibstoff": {
+      "erforscht": false
+    },
+    "Raumsonde": {
+      "erforscht": false
+    },
+    "Mondlander": {
+      "erforscht": false
+    },
+    "Rakete": {
+      "erforscht": false
+    },
+    "Mondbasen Bauplan": {
+      "erforscht": false
+    },
+    "Weltraumstation": {
+      "erforscht": false
+    }
+  },
+  "Werkstatt": {
+    "Baumaterial": {
+      "beschreibung": "Text Beschreibung Baumaterial",
+      "dauer": 2,
+      "material": {
+        "Staub": 1,
+        "Wasser": 1
+      }
+    },
+    "Eisenbarren": {
+      "beschreibung": "Text Beschreibung Eisenbarren",
+      "dauer": 2,
+      "material": {
+        "Roheisen": 1
+      }
+    },
+    "Werkzeug": {
+      "beschreibung": "Text Beschreibung Eisenbarren",
+      "dauer": 2,
+      "material": {
+        "Eisenbarren": 1,
+        "Wasser": 1
+      }
+    },
+    "Raumsonde": {
+      "beschreibung": "Text Beschreibung Raumsonde",
+      "dauer": 2,
+      "material": {
+        "Eisenbarren": 5,
+        "Werkzeug": 5
+      }
+    },
+    "Mondlander": {
+      "beschreibung": "Text Beschreibung Mondlander",
+      "dauer": 2,
+      "material": {
+        "Eisenbarren": 10,
+        "Werkzeug": 10
+      }
+    },
+    "Rakete": {
+      "beschreibung": "Text Beschreibung Rakete",
+      "dauer": 2,
+      "material": {
+        "Eisenbarren": 30,
+        "Werkzeug": 20
+      }
+    },
+    "Weltraumstation": {
+      "beschreibung": "Text Beschreibung Weltraumstation",
+      "dauer": 10,
+      "material": {
+        "Mondlander": 5,
+        "Eisenbarren": 100,
+        "Werkzeug": 10
+      }
+    }
+  },
+  "Inventar": {
+    "Mondgestein": 0,
+    "Seltene_Mineralien": 0,
+    "Mondstation_Modul": 0,
+    "Astronaut_Erfahrung": 0,
+    "Lebenserhaltung_Upgrade": 0,
+    "Kommunikations_Upgrade": 0,
+    "Mondbasen Bauplan": 0
+  },
+  "Planeten": {
+    "Erde": {
+      "Entfernung": {
+        "Mond": 1,
+        "Mars": 3
+      }
+    },
+    "Mond": {
+      "entdeckt": false,
+      "Entfernung": {
+        "Erde": 1,
+        "Mars": 2
+      }
+    },
+    "Mars": {
+      "entdeckt": false,
+      "Entfernung": {
+        "Erde": 3,
+        "Mond": 2
+      }
+    }
+  },
+  "Log": [
+    "Spiel gestartet",
+    "11\tErforsche 'Eisenbarren'",
+    "14\tForschung von 'Eisenbarren' beendet"
+  ],
+  "Mondmissionen": {
+    "Erkundung und Probenentnahme": {
+      "erforscht": false
+    },
+    "Konstruktion und Reparatur von Strukturen": {
+      "erforscht": false,
+      "ben\u00f6tigt_baumaterial": 3
+    },
+    "Navigation und Anpassung an die geringere Schwerkraft": {
+      "erforscht": false
+    },
+    "Raumfahrttechnik und -navigation": {
+      "erforscht": false
+    },
+    "Geologische Untersuchungen": {
+      "erforscht": false
+    },
+    "Lebenserhaltungssysteme": {
+      "erforscht": false
+    },
+    "Kommunikation und Daten\u00fcbertragung": {
+      "erforscht": false
+    },
+    "Mondbasen-Design": {
+      "erforscht": false
+    }
+  }
+}

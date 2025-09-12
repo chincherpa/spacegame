@@ -8,21 +8,21 @@ SCIENCE = {
 
   'Baumaterial': {
     'beschreibung': 'Erforsche das Herstellen von Baumaterial aus den auf dem Mond verfügbaren Ressourcen. Mit Baumaterial kannst du Weltraumstationen bauen.',
-    'erforschbar nach': 'Baumaterial',
+    'erforschbar nach': 'Eisenbarren',
     'dauer': 3,
     'kosten': 1,
   },
 
   'Werkzeug': {
     'beschreibung': 'Erforsche die Herstellung von Werkzeug aus Eisenbarren. Mit Werkzeug und Baumaterial kannst du eine Weltraumstation bauen.',
-    'erforschbar nach': 'Werkzeug',
+    'erforschbar nach': 'Eisenbarren',
     'dauer': 5,
     'kosten': 2,
   },
 
   'Treibstoff': {
     'beschreibung': 'Erforschung der Herstellung von Treibstoff aus den auf dem Mond verfügbaren Ressourcen',
-    'erforschbar nach': 'Treibstoff',
+    'erforschbar nach': 'Werkzeug',
     'dauer': 6,
     'kosten': 4,
     },

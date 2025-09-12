@@ -1008,7 +1008,8 @@ lTab_Forschung = [
   [
     sg.Column([
       [
-        sg.Button(button_text=name, key=f'Erforsche {name}', visible=not data.get('erforschbar nach', '') or GAMESTATE['Forschung'][data.get('erforschbar nach', '')]['erforscht']),
+        sg.Button(button_text=name, key=f'Erforsche {name}', visible=name == 'Eisenbarren' or GAMESTATE['Forschung'][SCIENCE[data['erforschbar nach']]]['erforscht'] or
+                  (data.get('erforschbar nach', '') and GAMESTATE['Forschung'].get(data.get('erforschbar nach', ''), {}).get('erforscht', False))),
         sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung'][name]['erforscht'], key=f'img_{name}')
       ]
       for name, data in SCIENCE.items()
@@ -1030,8 +1031,6 @@ lTab_Forschung = [
     ]),
   ],
 ]
-
-lForschung_auf_Erde = ['Raumsonde', 'Mondlander', 'Rakete']  # , 'Weltraumstation']
 
 lTab_Werkstatt = [
   [
@@ -1218,19 +1217,49 @@ while True:
         add2log(f"Forschung von '{sAktuelle_Forschung}' beendet")
         bForschung_aktiv = False
         GAMESTATE['Forschung'][sAktuelle_Forschung]['erforscht'] = True
+        
+        # Update building buttons visibility
         for name in SCIENCE:
           window[f'baue_{name}'].update(visible=GAMESTATE['Forschung'][name]['erforscht'])
 
+        # Update UI elements for completed research
         window['progressbar_Forschung'].update(visible=False)
         window['stop_research'].update(visible=False)
         window['already_researched'].update(visible=True)
         window[f'img_{sAktuelle_Forschung}'].update(visible=True)
-        for sForschung in lForschung_auf_Erde:
-          if GAMESTATE['Forschung'][sForschung]['erforscht']:
-            window[f'Erforsche {sForschung}'].update(visible=True)
-            window[f'Erforsche {sForschung}'].update(button_color = ('black','green'))
+        
+        # Update research button visibility for all items
+        for forschung_name, forschung_data in SCIENCE.items():
+          erforschbar_nach = forschung_data.get('erforschbar nach', '')
+          
+          # Show button if no prerequisite OR if prerequisite is researched
+          if not erforschbar_nach or GAMESTATE['Forschung'][erforschbar_nach]['erforscht']:
+            window[f'Erforsche {forschung_name}'].update(visible=True)
+            
+            # Change color to green if already researched
+            if GAMESTATE['Forschung'][forschung_name]['erforscht']:
+              window[f'Erforsche {forschung_name}'].update(button_color=('black', 'green'))
+          else:
+            window[f'Erforsche {forschung_name}'].update(visible=False)
+      # if iAktueller_Forschungsfortschritt == iMax_Forschung:
+      #   add2log(f"Forschung von '{sAktuelle_Forschung}' beendet")
+      #   bForschung_aktiv = False
+      #   GAMESTATE['Forschung'][sAktuelle_Forschung]['erforscht'] = True
+      #   for name in SCIENCE:
+      #     window[f'baue_{name}'].update(visible=GAMESTATE['Forschung'][name]['erforscht'])
+
+      #   window['progressbar_Forschung'].update(visible=False)
+      #   window['stop_research'].update(visible=False)
+      #   window['already_researched'].update(visible=True)
+      #   window[f'img_{sAktuelle_Forschung}'].update(visible=True)
+      #   for sForschung in list(SCIENCE.keys()):
+      #     if GAMESTATE['Forschung'][sForschung]['erforscht']:
+      #       window[f'Erforsche {sForschung}'].update(visible=True)
+      #       window[f'Erforsche {sForschung}'].update(button_color = ('black','green'))
             # window[f'Erforsche {sAktuelle_Forschung}'].update(button_color = ('black','green'))
 
+        # for name in ['Eisenbarren', 'Werkzeug', 'Baumaterial', 'Raumsonde', 'Mondlander', 'Rakete', 'Weltraumstation']:
+        #   window[f'baue_{name}'].update(visible=GAMESTATE['Forschung'][name]['erforscht'])
         # window.refresh()
 
     # Bau-Queue-Handling: Wenn kein Bau läuft, aber etwas in der Queue ist → Starte nächsten Bau
@@ -1246,7 +1275,7 @@ while True:
             beende_bauen(sAktuelles_Bauen)
         window['stop_research'].update(visible=False)
         window[f'img_{sAktuelles_Bauen}'].update(visible=True)
-        for sForschung in lForschung_auf_Erde:
+        for sForschung in list(SCIENCE.keys()):
           window[f'baue_{sForschung}'].update(visible=GAMESTATE['Forschung'][sForschung]['erforscht'])
 
         window.refresh()
