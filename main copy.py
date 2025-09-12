@@ -21,13 +21,15 @@ GAMESTATE = load_gamestate()
 
 for name, data in SCIENCE.items():
   print(f'{name = }')
-  print(f'{data = }')
+  if name == 'Eisenbarren':
+    continue
+  print(f'{GAMESTATE['Forschung'][data['erforschbar nach']]['erforscht'] = }')
 
 
 
 
 #       [
-#         sg.Button(button_text=name, key=f'Erforsche {name}', visible=name == 'Eisenbarren' or GAMESTATE['Forschung'][SCIENCE[data['erforschbar nach']]]['erforscht'] or
+#         sg.Button(button_text=name, key=f'Erforsche {name}', visible=name == 'Eisenbarren' or GAMESTATE['Forschung'][data['erforschbar nach']]['erforscht'] or
 #                   (data.get('erforschbar nach', '') and GAMESTATE['Forschung'].get(data.get('erforschbar nach', ''), {}).get('erforscht', False))),
 #         sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung'][name]['erforscht'], key=f'img_{name}')
 #       ]
