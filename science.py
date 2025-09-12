@@ -2,8 +2,8 @@ SCIENCE = {
   'Eisenbarren': {
     'beschreibung': 'Erforsche die Produktion von Eisenbarren. Aus Eisenbarren kannst du Baumaterial und Werkzeug herstellen',
     'erforschbar nach': '',
-    'dauer': 0.5,
-    'kosten': 1,
+    'dauer': 3,
+    'kosten': 5,
   },
 
   'Baumaterial': {
@@ -34,6 +34,7 @@ SCIENCE = {
     'Frachtplätze': 0,
     'Kosten Forschungspunkte': 5,
     'dauer': 8,
+    'reichweite': 10,
     'kosten': 10,
   },
 
@@ -44,6 +45,7 @@ SCIENCE = {
     'Frachtplätze': 3,
     'Kosten Forschungspunkte': 10,
     'dauer': 10,
+    'reichweite': 1,
     'kosten': 10,
   },
 
@@ -54,6 +56,7 @@ SCIENCE = {
     'Frachtplätze': 6,
     'Kosten Forschungspunkte': 20,
     'dauer': 20,
+    'reichweite': 10,
     'kosten': 2000,
   },
 
