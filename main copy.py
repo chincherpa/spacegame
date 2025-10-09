@@ -6,6 +6,8 @@ from actions import ACTIONS
 from materials import MATERIALS
 from science import SCIENCE
 
+from rich import print
+
 def load_gamestate():
   print('load_gamestate()')
   try:
@@ -20,12 +22,22 @@ def load_gamestate():
 GAMESTATE = load_gamestate()
 
 for name, data in SCIENCE.items():
-  print(f'{name = }')
+  print(name, data)
+  for x, y in data.items():
+    print('\t', x, f'[yellow]{y}')
+  print('x', data['erforschbar nach'], SCIENCE.get(data['erforschbar nach'], None))
   if name == 'Eisenbarren':
-    continue
-  print(f'{GAMESTATE['Forschung'][data['erforschbar nach']]['erforscht'] = }')
+    print('ok')
+  elif SCIENCE.get(data['erforschbar nach'], None):
+    print("SCIENCE[data['erforschbar nach']] =>", f"|{data['erforschbar nach']}|")
+    print("GAMESTATE['Forschung']")
+    print(GAMESTATE['Forschung'][data['erforschbar nach']]['erforscht'])
+  else:
+    print(f'[red] PROBLEM bei {name}')
+  # print(GAMESTATE['Forschung'], [SCIENCE[data['erforschbar nach']]]['erforscht']),
+  # print(r'images\checkmark.png', GAMESTATE['Forschung'][name]['erforscht'])
 
-
+print(GAMESTATE['Forschung'])
 
 
 #       [

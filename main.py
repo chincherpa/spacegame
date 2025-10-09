@@ -2,6 +2,7 @@ import json
 import time
 
 import FreeSimpleGUI as sg
+from rich import print
 
 import config
 from actions import ACTIONS
@@ -203,6 +204,13 @@ def load_gamestate():
     return GAMESTATE
 
 GAMESTATE = load_gamestate()
+for x, y in GAMESTATE.items():
+  print(f'[yellow]{x}', y)
+
+for x, y in SCIENCE.items():
+  print(f'[yellow]{x}', y)
+
+input('WEITER mit ENTER...')
 iForschungspunkte = GAMESTATE['Forschungspunkte']
 
 def dump_gamestate():
@@ -668,12 +676,12 @@ def beende_reise(reise):
   if reise.zu_planet == 'Mond' and not GAMESTATE['Planeten']['Mond']['entdeckt']:
     GAMESTATE['Planeten']['Mond']['entdeckt'] = True
     add2log("Mond entdeckt!")
-    iForschungspunkte += 50
+    iForschungspunkte += 5
 
   if reise.zu_planet == 'Mars' and not GAMESTATE['Planeten']['Mars']['entdeckt']:
     GAMESTATE['Planeten']['Mars']['entdeckt'] = True
     add2log("Mars entdeckt!")
-    iForschungspunkte += 100
+    iForschungspunkte += 10
 
   add2log(f"{reise.raumschiff_typ} erreicht {reise.zu_planet}")
   add2log(f"Astronauten: {reise.astronauten}, Fracht gelandet")
@@ -1008,7 +1016,7 @@ lTab_Forschung = [
   [
     sg.Column([
       [
-        sg.Button(button_text=name, key=f'Erforsche {name}', visible=name == 'Eisenbarren' or GAMESTATE['Forschung'][SCIENCE[data['erforschbar nach']]]['erforscht'] or
+        sg.Button(button_text=name, key=f'Erforsche {name}', visible=name == 'Eisenbarren' or GAMESTATE['Forschung'][data['erforschbar nach']]['erforscht'] or
                   (data.get('erforschbar nach', '') and GAMESTATE['Forschung'].get(data.get('erforschbar nach', ''), {}).get('erforscht', False))),
         sg.Image(r'images\checkmark.png', visible=GAMESTATE['Forschung'][name]['erforscht'], key=f'img_{name}')
       ]
