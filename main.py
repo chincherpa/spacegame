@@ -1,175 +1,93 @@
 import json
+import logging
 import time
 
 import FreeSimpleGUI as sg
-from rich import print
 
 import config
 from actions import ACTIONS
 from materials import MATERIALS
 from science import SCIENCE
 
+# Configure logging - set to DEBUG for development, INFO for production
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
 sg.theme('Dark Teal 6')
-# sg.main_global_pysimplegui_settings()
 
-# # PERPLEXITY
-# Im aktuellen Zustand des Spiels „Spacegame“ sind bereits viele Elemente und Spielmechaniken implementiert, aber der Code (insbesondere in main.py) sowie zahlreiche TODO-Kommentare und Codestellen zeigen, dass wichtige Feature-Bereiche noch nicht fertig entwickelt sind. Im Folgenden findest du eine Analyse der noch unfertigen Features sowie Hinweise, wie diese sinnvoll vollendet werden können:
+# See docs/ROADMAP.md for feature roadmap and TODO items
 
-# 1. Bau-System
-# Status: Teilweise implementiert, Hinweise auf Bugs/Funktionslücken.
-# Probleme:
-# Im Code steht:
-# python
-# # Das Bau-System reparieren und vervollständigen?
-# Es gibt Funktionen zum Starten/Beenden von Bauprozessen (baue(), beende_bauen()), aber Anpassungen für „Weltraumstation“/„Mondbasis“ sind nicht fertig bzw. im UI ist dies wohl noch fehlerhaft.
-# Bau-Button-Logik ist nicht “idiotensicher” und es fehlt ggf. eine Queue für mehrere Bauaufträge.
-# Lösungsvorschlag:
-# Baue ein echtes Bauauftrags-Queue-System, damit mehrere Bauaufträge nacheinander abgearbeitet werden können.
-# Stelle sicher, dass Fehlerbehandlung greift (z.B. Rückgabe von Materialien, wenn Bau abgebrochen wird).
-# Füge optionale Bau-Abbruch/Abschluss-Benachrichtigungen ein, die auch ins Log geschrieben werden.
-# Synchronisiere Baufortschritte mit UI/Progress-Bar und dem Inventar.
-
-# 2. Reisen zwischen Planeten
-# Status: Intern größtenteils vorbereitet (es existieren z.B. die Reise-Klasse, Methoden wie starte_reise()), aber UI-seitig/Tick-Verwaltung scheinbar noch nicht voll integriert.
-# Probleme:
-# Im UI fehlen ggf. Fortschrittsanzeigen und vollständige Übersicht laufender/beendeter Reisen.
-# Tick-Logik für Reisen und die automatische Abwicklung bei Abschluss (Ressourcen verschieben, Astronauten umlagern etc.) könnte noch Fehler enthalten.
-# Handle Ereignisse während der Reise (z.B. Pannen, zufällige Events) werden nur als TODO geführt.
-# Lösungsvorschlag:
-# Implementiere ein periodisches Event-Update pro Tick im Spiel-Loop, das alle aktiven Reisen auf Fortschritt prüft, die Reisen ggf. abschließt, und passende Logeinträge erzeugt.
-# Entwickle ein UI-Panel, das alle Reisen inkl. Fortschrittsbalken und Details (Astronauten, Schiffe, Fracht) zeigt.
-# Führe ein Zufallsevent-System ein, das je nach Reiseart/Entfernung Risiken oder Boni (Erfahrung, Ressourcenverlust etc.) generiert.
-
-# 3. Forschungssystem
-# Status: Die grundlegenden Mechaniken scheinen vorhanden, aber der Forschungsbaum mit Abhängigkeiten und Freischaltbedingungen ist lückenhaft verknüpft.
-# Probleme:
-# Forschungsabfolgen und Voraussetzungen werden in den Datenstrukturen begonnen, aber die Funktionalität „erforschbar nach“ wird nur rudimentär abgefragt.
-# Es gibt Buttons zum Starten/Stoppen von Forschungen, aber kein echtes Queue-System oder Hilfestellung im UI zu Folgeforschungen.
-# Lösungsvorschlag:
-# Entwickle einen klaren Forschungsbaum mit Vorbedingungen: Ein Forschungsbutton wird nur aktiviert, wenn alle Voraussetzungen erforscht wurden.
-# Zeige im UI eine visuelle Verbindung/Liste der möglichen nächsten Forschungen.
-# Baue eine Option, um eine „Forschungsliste“ (Queue) abzuarbeiten.
-
-# 4. Inventar-/Ressourcenmanagement & Werkstatt
-# Status: Die Anzeige ist dynamisch, aber Erweiterungen sind noch offen (dynamische Materialbeschreibungen, neue Ressourcen, Produktionsketten).
-# Probleme:
-# Im UI können neue/gefundene Materialien nicht immer sofort angezeigt werden.
-# Produktion neuer Materialien und Upgrade-Prozesse (z.B. Baumaterial aus diversen Grundstoffen) fehlen oder sind nicht nahtlos integriert.
-# Lösungsvorschlag:
-# Baue eine vollwertige dynamische Inventar-Anzeige, die neue Materialeinträge automatisch ergänzt.
-# Erweitere die Werkstatt um Rezept-Abfragen – Produktionsketten, die auf Freischaltungen und Ressourcen geprüft werden.
-# Entwickle einen Ressourcenabbau- und Verarbeitungssimulator (z.B. regelmäßiger automatischer Abbau).
-
-# 5. Mondmissionen
-# Status: Grundstruktur liegt an, Missionsstart/-abbruch/-abschluss ist abgebildet, aber das Missionssystem wirkt (Code + UI) noch linear und nicht modular-expandierbar.
-# Probleme:
-# Kein Missionsfortschritt im Hintergrund (parallel zu anderen Aktionen?).
-# Belohnungen/Abhängigkeiten von Missionen sind nicht flexibel (z.B. Kettenmissionen, zufällige Modifikatoren).
-# Lösungsvorschlag:
-# send: Implementiere ein Missionsmanagement-System, das mehrere Missionen verwalten und parallel laufen lassen kann.
-# Entwickle Missionstypen mit zufälligen Subzielen und unterschiedlichen Belohnungs-/Risikoausprägungen.
-# Schaffe neue Missionstypen (z.B. zeitliche Anforderungen, Rettungsmissionen).
-
-# 6. UI/UX Verbesserungen
-# Status: Viele Funktionen sind sichtbar vorbereitet, aber Modifikationen für Feedback und Bedienkomfort fehlen (Tabs, Statistikausgabe).
-# Lösungsvorschlag:
-# Entwickle kontext-sensitive Tooltips und Hilfe-Panels.
-# Füge fortlaufende Fortschrittsbalken, besser sichtbare Statusanzeigen und Feedback für nicht mögliche Aktionen ein.
-# Implementiere eine interaktive Log-/Nachrichtenausgabe mit Filtermöglichkeit.
-
-# 7. Speicher-/Ladesystem
-# Status: Initial vorhanden, sollte jedoch erweitert und gründlich getestet werden.
-# Lösungsvorschlag:
-# Baue Autosave nach jeder wichtigen Änderung.
-# Implementiere eine Rückmeldung im UI beim erfolgreichen Speichern oder Wiederherstellen.
-# Ermögliche das Anlegen mehrerer Savegames und ein übersichtliches Lade-Menü.
-
-# 8. Tutorial und Hilfesystem
-# Status: Nur als Konzept vorhanden.
-# Lösungsvorschlag:
-# Füge ein Start-Tutorial ein (Modal-Fenster, Erklärtexte zu ersten Schritten).
-# Implementiere kontextabhängige Hilfe für unbekannte Buttons/Materialien.
-
-# Zusammengefasst:
-# Das Spiel ist solide vorstrukturiert, aber wesentliche Kernfeatures (Auftrags-Queues für Bau/Forschung/Missionen; vollständiger Reisezyklus; Ereignissysteme; ausgereifte UI-Bedienung; Tutorials) sind noch unfertig oder fehleranfällig. Der weitere Ausbau sollte an diesen Punkten ansetzen, jeweils mit Fokus auf Modularität, Fehlerbehandlung, Benutzerführung und der Möglichkeit zur nachträglichen Erweiterung (neue Forschungen, Materialien, Missionstypen etc.).
-# Wenn du möchtest, kann ich für einen der genannten Punkte Beispiel-Code zeigen und Stand/ToDo detailliert erläutern. Sag einfach, welche Baustelle dich interessiert!
-
-# Todo
-#   Das Bau-System reparieren und vervollständigen?
-#   Reisen zwischen Planeten implementieren?
-#   Die Mondmissionen aus actions.py integrieren?
-# Das Interface verbessern?
-# Ressourcenabbau-System hinzufügen?
-#   die dynamische Inventar-Anzeige implementiere
-
-## Mondmissionen
-# Missionssystem mit verschiedenen Zielen (z.B. Proben sammeln, Module bauen, Forschung betreiben).
-# Fortschrittsanzeige und Belohnungen (z.B. Forschungspunkte, seltene Materialien).
-# Risiko- und Ereignissystem (z.B. Astronauten können Erfahrung sammeln oder verlieren).
-
-## Reisen zwischen Planeten
-# Auswahl von Raumschiff, Start- und Zielplanet, Astronauten und Fracht.
-# Reisezeit und Fortschrittsanzeige.
-# Ereignisse während der Reise (z.B. Pannen, Entdeckungen).
-# Ressourcenverbrauch (Treibstoff, Lebenserhaltung).
-
-## Forschungssystem
-# Forschungsbaum mit Abhängigkeiten.
-# Forschungspunkte als Ressource.
-# Freischalten neuer Technologien und Baupläne.
-
-## Bau-System
-# Bau von Raumschiffen, Stationen und Modulen.
-# Materialverbrauch und Bauzeit.
-# Fortschrittsanzeige und Abbruchmöglichkeit.
-
-## Inventar- und Ressourcenmanagement
-# Dynamische Anzeige des Inventars.
-# Sammeln, Lagern und Verarbeiten von Ressourcen.
-# Handelssystem (Shop, Tausch mit NPCs).
-
-## Astronauten-Management
-# Zuweisung zu Missionen und Reisen.
-# Erfahrung, Gesundheit und Skills.
-# Training und Upgrades.
-
-## Planeten- und Stationsverwaltung
-# Ausbau von Basen und Stationen.
-# Verwaltung von Modulen und Upgrades.
-# Entdeckung neuer Planeten und Ressourcen.
-
-## Ereignisse und Zufallsbegegnungen
-# Zufällige Events (Meteoriten, technische Defekte, Entdeckungen).
-# Entscheidungen mit Konsequenzen.
-
-## UI/UX Verbesserungen
-# Übersichtliche Tabs für alle Bereiche.
-# Fortschrittsbalken, Tooltips, Statusanzeigen.
-
-## Speichern/Laden des Spielstands
-# Automatisches und manuelles Speichern.
-# Laden und Fortsetzen des Spiels.
-
-## Tutorial und Hilfesystem
-# Einführung für neue Spieler.
-# Kontextabhängige Hilfe.
-
-TICK_INTERVAL = 2  # Tick-Abstand in Sekunden (z.B. alle 1 Sekunde ein Tick)
+# Game timing
+TICK_INTERVAL = 2  # Tick interval in seconds
 letzter_tick = time.time()
 
+# Research state
 bForschung_aktiv = False
-# bBauen_aktiv = False
 iAktueller_Forschungsfortschritt = None
-# iAktueller_Baufortschritt = None
 
+# Building state
 bBauen_aktiv = False
 iAktueller_Baufortschritt = None
 sAktuelles_Bauen = None
 iMax_Bauen = None
-bau_queue = []            # Die Warteschlange der geplanten Bauaufträge
-sAktuelles_Bauen = None   # Bleibt bestehen, wird jetzt von der Queue gefüllt!
+bau_queue = []  # Queue for planned build orders
 
-missionen_aktiv = []  # Liste der laufenden Missionen
+# Active missions
+missionen_aktiv = []
+
+# Earth jobs system - jobs that generate research points and credits
+ERDE_JOBS = {
+    'Laborarbeit': {
+        'beschreibung': 'Wissenschaftler arbeiten im Labor und generieren Forschungspunkte.',
+        'dauer': 3,
+        'benötigt_arbeiter': 1,
+        'belohnung': {'Forschungspunkte': 2}
+    },
+    'Bergbau': {
+        'beschreibung': 'Arbeiter bauen Roheisen ab.',
+        'dauer': 2,
+        'benötigt_arbeiter': 2,
+        'belohnung': {'Roheisen': 3}
+    },
+    'Wasseraufbereitung': {
+        'beschreibung': 'Wasser wird aufbereitet und gesammelt.',
+        'dauer': 2,
+        'benötigt_arbeiter': 1,
+        'belohnung': {'Wasser': 2}
+    },
+    'Staubsammlung': {
+        'beschreibung': 'Staub wird für Baumaterial gesammelt.',
+        'dauer': 2,
+        'benötigt_arbeiter': 1,
+        'belohnung': {'Staub': 2}
+    },
+}
+
+# Active Earth jobs
+erde_jobs_aktiv = []
+
+
+class ErdArbeit:
+    """Represents an active job on Earth."""
+    def __init__(self, job_name):
+        self.name = job_name
+        self.fortschritt = 0
+        self.max_fortschritt = ERDE_JOBS[job_name]['dauer']
+        self.aktiv = True
+
+    def tick(self):
+        if self.aktiv:
+            self.fortschritt += 1
+            if self.fortschritt >= self.max_fortschritt:
+                self.aktiv = False
+                return True  # Job abgeschlossen
+        return False
+
+
 
 class MissionInstance:
   def __init__(self, missionsname):
@@ -193,28 +111,27 @@ sAktuelle_Mondmission = None
 iMax_Mondmission = 5
 
 def load_gamestate():
-  print('load_gamestate()')
+  logger.debug('load_gamestate()')
   try:
     with open(config.SAVEFILE, "r") as file:
-      print('config.SAVEFILE gefunden')
+      logger.debug('config.SAVEFILE gefunden')
       return json.load(file)
   except FileNotFoundError:
     from gamestate import GAMESTATE
-    print('GAMESTATE importiert')
+    logger.debug('GAMESTATE importiert')
     return GAMESTATE
 
 GAMESTATE = load_gamestate()
 for x, y in GAMESTATE.items():
-  print(f'[yellow]{x}', y)
+  logger.debug(f'{x}: {y}')
 
 for x, y in SCIENCE.items():
-  print(f'[yellow]{x}', y)
+  logger.debug(f'{x}: {y}')
 
-input('WEITER mit ENTER...')
 iForschungspunkte = GAMESTATE['Forschungspunkte']
 
 def dump_gamestate():
-  print('dump_gamestate()')
+  logger.debug('dump_gamestate()')
   GAMESTATE['Ticks'] = iTicks
   GAMESTATE['Credits'] = iCredits
   GAMESTATE['Forschungspunkte'] = iForschungspunkte
@@ -223,7 +140,7 @@ def dump_gamestate():
     json.dump(GAMESTATE, outfile, indent=2)
 
 def zeige_Forschung(sAktuelle_Forschung):
-  print(f'zeige_Forschung({sAktuelle_Forschung})')
+  logger.debug(f'zeige_Forschung({sAktuelle_Forschung})')
   window['do_research'].update(visible=False)
   window['already_researched'].update(visible=False)
 
@@ -251,7 +168,7 @@ def aktualisiere_bau_queue_anzeige():
     pass  # Falls Feld gerade nicht sichtbar ist
 
 def zeige_bauen(sAktuelles_Bauen):
-  print('zeige_bauen()')
+  logger.debug('zeige_bauen()')
   """Zeigt Informationen zum ausgewählten Bau-Item"""
   if sAktuelles_Bauen in GAMESTATE['Werkstatt']:
     item = GAMESTATE['Werkstatt'][sAktuelles_Bauen]
@@ -292,7 +209,7 @@ def bauauftrag_hinzufuegen(item_name):
   aktualisiere_bau_queue_anzeige()  # Neue Funktion, siehe unten
 
 def baue(sAktuelles_Bauen):
-  print('baue()')
+  logger.debug('baue()')
   """Startet den Bau-Prozess"""
   global bBauen_aktiv, iAktueller_Baufortschritt, iMax_Bauen
 
@@ -324,7 +241,7 @@ def baue(sAktuelles_Bauen):
   add2log(f"Baue '{sAktuelles_Bauen}' - Materialien verbraucht")
 
 def beende_bauen(sAktuelles_Bauen):
-  print('beende_bauen()')
+  logger.debug('beende_bauen()')
   """Beendet den Bau-Prozess erfolgreich"""
   global bBauen_aktiv
 
@@ -354,7 +271,7 @@ def beende_bauen(sAktuelles_Bauen):
 
 
 def stoppe_bauen():
-  print('stoppe_bauen()')
+  logger.debug('stoppe_bauen()')
   """Stoppt den Bau-Prozess und gibt Materialien zurück"""
   global bBauen_aktiv
 
@@ -374,7 +291,7 @@ def stoppe_bauen():
     add2log(f"Bau von '{sAktuelles_Bauen}' gestoppt - Materialien zurückgegeben")
 
 def erforsche(sAktuelle_Forschung):
-  print('erforsche()')
+  logger.debug('erforsche()')
   global bForschung_aktiv
   global iAktueller_Forschungsfortschritt
   global iMax_Forschung
@@ -387,21 +304,21 @@ def erforsche(sAktuelle_Forschung):
   window['stop_research'].update(visible=True)
 
 def get_materials_from_inventory():
-  print('get_materials_from_inventory()')
+  logger.debug('get_materials_from_inventory()')
   lMaterials = []
   for material, amount in GAMESTATE['Inventar'].items():
     lMaterials.append([sg.Text(material)])
   return lMaterials
 
 def get_amounts_from_inventory():
-  print('get_amounts_from_inventory()')
+  logger.debug('get_amounts_from_inventory()')
   lAmounts = []
   for material, amount in GAMESTATE['Inventar'].items():
     lAmounts.append([sg.Text(amount)])
   return lAmounts
 
 def add2log(sString):
-  print(f'add2log({sString})')
+  logger.debug(f'add2log({sString})')
   global lLog
   global sLog
   lLog.append(f"{iTicks}\t{sString}")
@@ -410,7 +327,7 @@ def add2log(sString):
 
 # NEW
 def erstelle_inventar_layout():
-  print('erstelle_inventar_layout()')
+  logger.debug('erstelle_inventar_layout()')
   """Erstellt das Layout für die Inventar-Anzeige dynamisch"""
   inventar_zeilen = []
 
@@ -438,12 +355,12 @@ def erstelle_inventar_layout():
   return inventar_zeilen
 
 def get_material_beschreibung(material):
-  print('get_material_beschreibung()')
+  logger.debug('get_material_beschreibung()')
   """Gibt eine Beschreibung für jedes Material zurück"""
   return MATERIALS.get(material, 'Unbekanntes Material')
 
 def aktualisiere_inventar_anzeige():
-  print('aktualisiere_inventar_anzeige()')
+  logger.debug('aktualisiere_inventar_anzeige()')
   """Aktualisiert die Inventar-Anzeige dynamisch"""
   for material, anzahl in GAMESTATE['Inventar'].items():
     try:
@@ -452,12 +369,12 @@ def aktualisiere_inventar_anzeige():
       window[f'inv_anzahl_{material}'].update(value=str(anzahl), text_color=farbe)
     except KeyError:
       # Material existiert noch nicht in der Anzeige - Layout neu erstellen
-      print(f"Material {material} nicht in Anzeige gefunden - Layout wird neu erstellt")
+      logger.debug(f"Material {material} nicht in Anzeige gefunden - Layout wird neu erstellt")
       # Hier könntest du das komplette Layout neu erstellen, falls nötig
       pass
 
 def aktualisiere_raumschiff_anzeige():
-  print('aktualisiere_raumschiff_anzeige()')
+  logger.debug('aktualisiere_raumschiff_anzeige()')
   """Aktualisiert die Raumschiff-Anzeige"""
   try:
     # Raumschiffe auf der Erde
@@ -478,10 +395,10 @@ def aktualisiere_raumschiff_anzeige():
       )
 
   except KeyError:
-    print("Raumschiff-Anzeige konnte nicht aktualisiert werden")
+    logger.debug("Raumschiff-Anzeige konnte nicht aktualisiert werden")
 
 def erstelle_raumschiff_uebersicht():
-  print('erstelle_raumschiff_uebersicht()')
+  logger.debug('erstelle_raumschiff_uebersicht()')
   """Erstellt eine Übersicht aller Raumschiffe"""
   raumschiff_layout = []
 
@@ -514,7 +431,7 @@ def erstelle_raumschiff_uebersicht():
   return raumschiff_layout
 
 def berechne_inventar_statistiken():
-  print('berechne_inventar_statistiken()')
+  logger.debug('berechne_inventar_statistiken()')
   """Berechnet Statistiken für das Inventar"""
   gesamtwert = 0
   anzahl_typen = 0
@@ -542,7 +459,7 @@ def berechne_inventar_statistiken():
   return gesamtwert, anzahl_typen
 
 def aktualisiere_inventar_statistiken():
-  print('aktualisiere_inventar_statistiken()')
+  logger.debug('aktualisiere_inventar_statistiken()')
   """Aktualisiert die Inventar-Statistiken"""
   gesamtwert, anzahl_typen = berechne_inventar_statistiken()
 
@@ -557,7 +474,7 @@ aktive_reisen = []  # Liste aller aktiven Reisen
 
 class Reise:
   def __init__(self, raumschiff_typ, von_planet, zu_planet, astronauten, fracht, reise_id):
-    print('__init__()')
+    logger.debug('__init__()')
     self.raumschiff_typ = raumschiff_typ
     self.von_planet = von_planet
     self.zu_planet = zu_planet
@@ -570,17 +487,17 @@ class Reise:
     self.abgeschlossen = False
 
   def fortschritt(self, aktuelle_tick):
-    print('fortschritt()')
+    logger.debug('fortschritt()')
     if aktuelle_tick >= self.end_tick:
       return 100
     return min(100, ((aktuelle_tick - self.start_tick) / self.dauer) * 100)
 
   def ist_abgeschlossen(self, aktuelle_tick):
-    print('ist_abgeschlossen()')
+    logger.debug('ist_abgeschlossen()')
     return aktuelle_tick >= self.end_tick
 
 def get_verfuegbare_raumschiffe(planet):
-  print('get_verfuegbare_raumschiffe()')
+  logger.debug('get_verfuegbare_raumschiffe()')
   """Gibt verfügbare Raumschiffe auf einem Planeten zurück"""
   verfuegbare = {}
   for raumschiff_typ in ['Mondlander', 'Rakete']:
@@ -590,7 +507,7 @@ def get_verfuegbare_raumschiffe(planet):
   return verfuegbare
 
 def get_raumschiff_kapazitaet(raumschiff_typ):
-  print('get_raumschiff_kapazitaet()')
+  logger.debug('get_raumschiff_kapazitaet()')
   """Gibt die Kapazitäten eines Raumschiffs zurück"""
   eintrag = SCIENCE.get(raumschiff_typ, {})
   astronauten = eintrag.get('Sitzplätze', 0)
@@ -600,7 +517,7 @@ def get_raumschiff_kapazitaet(raumschiff_typ):
   return {'astronauten': astronauten, 'fracht': fracht, 'reichweite': reichweite}
 
 def kann_reisen(von_planet, zu_planet, raumschiff_typ):
-  print('kann_reisen()')
+  logger.debug('kann_reisen()')
   """Prüft ob eine Reise möglich ist"""
   # Prüfen ob Zielplanet entdeckt ist
   if not GAMESTATE['Planeten'][zu_planet]['entdeckt'] and zu_planet != 'Erde':
@@ -618,7 +535,7 @@ def kann_reisen(von_planet, zu_planet, raumschiff_typ):
   return True, "Reise möglich"
 
 def starte_reise(raumschiff_typ, von_planet, zu_planet, astronauten_anzahl, fracht_dict):
-  print('starte_reise()')
+  logger.debug('starte_reise()')
   """Startet eine neue Reise"""
   global aktive_reisen
   kann_reisen_result, grund = kann_reisen(von_planet, zu_planet, raumschiff_typ)
@@ -657,7 +574,7 @@ def starte_reise(raumschiff_typ, von_planet, zu_planet, astronauten_anzahl, frac
   return True
 
 def beende_reise(reise):
-  print('beende_reise()')
+  logger.debug('beende_reise()')
   """Beendet eine Reise und bringt Raumschiff ans Ziel"""
   # Raumschiff am Zielort hinzufügen
   GAMESTATE['Raumschiffe'][reise.zu_planet][reise.raumschiff_typ]['Anzahl'] += 1
@@ -690,7 +607,7 @@ def beende_reise(reise):
   aktualisiere_alle_anzeigen()
 
 def verwalte_aktive_reisen():
-  print('verwalte_aktive_reisen()')
+  logger.debug('verwalte_aktive_reisen()')
   """Verwaltet alle aktiven Reisen"""
   global aktive_reisen
   globale_ticks = iTicks
@@ -705,7 +622,7 @@ def verwalte_aktive_reisen():
   aktive_reisen = [r for r in aktive_reisen if not r.abgeschlossen]
 
 def aktualisiere_reise_anzeige():
-  print('aktualisiere_reise_anzeige()')
+  logger.debug('aktualisiere_reise_anzeige()')
   """Aktualisiert die Anzeige der aktiven Reisen"""
   try:
     if not aktive_reisen:
@@ -723,7 +640,7 @@ def aktualisiere_reise_anzeige():
     pass  # Element existiert noch nicht
 
 def aktualisiere_alle_anzeigen():
-  print('aktualisiere_alle_anzeigen()')
+  logger.debug('aktualisiere_alle_anzeigen()')
   """Aktualisiert alle UI-Elemente"""
   aktualisiere_inventar_anzeige()
   aktualisiere_raumschiff_anzeige()
@@ -732,7 +649,7 @@ def aktualisiere_alle_anzeigen():
   aktualisiere_planeten_anzeige()
 
 def aktualisiere_planeten_anzeige():
-  print('aktualisiere_planeten_anzeige()')
+  logger.debug('aktualisiere_planeten_anzeige()')
   """Aktualisiert die Astronauten-Anzeige auf den Planeten"""
   try:
     # HQ Tab
@@ -746,7 +663,7 @@ def aktualisiere_planeten_anzeige():
     pass
 
 def erstelle_reise_interface():
-  print('erstelle_reise_interface()')
+  logger.debug('erstelle_reise_interface()')
   """Erstellt das Interface für Reisen"""
 
   # Radiobuttons für Start- und Zielplanet
@@ -784,6 +701,112 @@ def erstelle_reise_interface():
 # Neues Tab für Reisen
 lTab_Reisen = erstelle_reise_interface()
 
+
+# ============ EARTH JOBS SYSTEM ============
+
+def starte_erde_job(job_name):
+    """Startet einen Erd-Job."""
+    global erde_jobs_aktiv
+    logger.debug(f'starte_erde_job({job_name})')
+    
+    job_info = ERDE_JOBS[job_name]
+    benötigte_arbeiter = job_info.get('benötigt_arbeiter', 1)
+    
+    # Prüfen ob genug Arbeiter verfügbar
+    verfuegbare_arbeiter = GAMESTATE['Arbeiter']['Erde']
+    
+    # Zähle bereits beschäftigte Arbeiter
+    beschäftigte = sum(ERDE_JOBS[j.name].get('benötigt_arbeiter', 1) for j in erde_jobs_aktiv if j.aktiv)
+    freie_arbeiter = verfuegbare_arbeiter - beschäftigte
+    
+    if freie_arbeiter < benötigte_arbeiter:
+        add2log(f"Nicht genug freie Arbeiter für '{job_name}' (benötigt: {benötigte_arbeiter}, frei: {freie_arbeiter})")
+        return False
+    
+    # Job starten
+    neuer_job = ErdArbeit(job_name)
+    erde_jobs_aktiv.append(neuer_job)
+    add2log(f"Erd-Job '{job_name}' gestartet")
+    aktualisiere_erde_jobs_anzeige()
+    return True
+
+
+def beende_erde_job(job):
+    """Beendet einen Erd-Job und gibt Belohnung."""
+    global iForschungspunkte
+    logger.debug(f'beende_erde_job({job.name})')
+    
+    job_info = ERDE_JOBS[job.name]
+    belohnung = job_info.get('belohnung', {})
+    
+    for ressource, menge in belohnung.items():
+        if ressource == 'Forschungspunkte':
+            iForschungspunkte += menge
+        elif ressource in GAMESTATE['Inventar']:
+            GAMESTATE['Inventar'][ressource] += menge
+        else:
+            GAMESTATE['Inventar'][ressource] = menge
+    
+    belohnung_text = ', '.join([f"{menge} {ressource}" for ressource, menge in belohnung.items()])
+    add2log(f"Erd-Job '{job.name}' abgeschlossen! Belohnung: {belohnung_text}")
+    aktualisiere_inventar_anzeige()
+
+
+def aktualisiere_erde_jobs_anzeige():
+    """Aktualisiert die Anzeige der aktiven Erd-Jobs."""
+    try:
+        if not erde_jobs_aktiv:
+            window['aktive_erde_jobs'].update(value="Keine laufenden Jobs.")
+        else:
+            text = ""
+            for job in erde_jobs_aktiv:
+                if job.aktiv:
+                    text += f"• {job.name}: {job.fortschritt}/{job.max_fortschritt} Zyklen\n"
+            window['aktive_erde_jobs'].update(value=text if text else "Keine laufenden Jobs.")
+        
+        # Aktualisiere freie Arbeiter
+        beschäftigte = sum(ERDE_JOBS[j.name].get('benötigt_arbeiter', 1) for j in erde_jobs_aktiv if j.aktiv)
+        freie = GAMESTATE['Arbeiter']['Erde'] - beschäftigte
+        window['freie_arbeiter'].update(value=f"Freie Arbeiter: {freie} / {GAMESTATE['Arbeiter']['Erde']}")
+    except KeyError:
+        pass
+
+
+def erstelle_erde_jobs_tab():
+    """Erstellt das Tab für Erd-Jobs."""
+    logger.debug('erstelle_erde_jobs_tab()')
+    
+    job_buttons = []
+    for job_name, job_info in ERDE_JOBS.items():
+        job_buttons.append([
+            sg.Button(job_name, key=f'start_erde_job_{job_name}'),
+            sg.Text(f"({job_info.get('benötigt_arbeiter', 1)} Arbeiter, {job_info['dauer']} Zyklen)")
+        ])
+    
+    return [
+        [sg.Text('Arbeiten auf der Erde', font=('Arial', 12, 'bold'))],
+        [sg.Text('Setze Arbeiter ein um Ressourcen und Forschungspunkte zu verdienen.')],
+        [sg.HorizontalSeparator()],
+        [sg.Text('', key='freie_arbeiter', font=('Arial', 10, 'bold'))],
+        [sg.HorizontalSeparator()],
+        [sg.Text('Verfügbare Jobs:', font=('Arial', 10, 'bold'))],
+        *job_buttons,
+        [sg.HorizontalSeparator()],
+        [sg.Text('Job-Beschreibung:', font=('Arial', 10, 'bold'))],
+        [sg.Text('', key='erde_job_beschreibung', size=(50, 2))],
+        [sg.Text('Belohnung:', font=('Arial', 10))],
+        [sg.Text('', key='erde_job_belohnung', size=(50, 1))],
+        [sg.HorizontalSeparator()],
+        [sg.Text('Laufende Jobs:', font=('Arial', 10, 'bold'))],
+        [sg.Multiline('', key='aktive_erde_jobs', size=(50, 5), disabled=True)],
+    ]
+
+
+# Tab für Erd-Jobs erstellen
+lTab_ErdeJobs = erstelle_erde_jobs_tab()
+
+
+
 def aktualisiere_missionen_anzeige():
   text = ""
   for m in missionen_aktiv:
@@ -796,7 +819,7 @@ def aktualisiere_missionen_anzeige():
     pass
 
 def zeige_mondmission(sAktuelle_Mission):
-  print('zeige_mondmission()')
+  logger.debug('zeige_mondmission()')
   """Zeigt Informationen zur ausgewählten Mondmission"""
   window['do_mondmission'].update(visible=False)
   window['mondmission_completed'].update(visible=False)
@@ -919,7 +942,7 @@ def beende_mondmission(missionsname):
   add2log(f"Mission '{missionsname}' abgeschlossen!")
 
 def stoppe_mondmission():
-  print('stoppe_mondmission()')
+  logger.debug('stoppe_mondmission()')
   """Stoppt eine Mondmission und gibt Ressourcen zurück"""
   global bMondmission_aktiv, iCredits
 
@@ -946,7 +969,7 @@ def stoppe_mondmission():
 
 # Neue Tab für Mondmissionen
 def erstelle_mondmission_tab():
-  print('erstelle_mondmission_tab()')
+  logger.debug('erstelle_mondmission_tab()')
   """Erstellt das Tab für Mondmissionen"""
   return [
     [sg.Text('Mondmissionen', font=('Arial', 12, 'bold'))],
@@ -1066,7 +1089,7 @@ lTab_Werkstatt = [
 
 # Ersetze das alte lTab_Inventory durch:
 def erstelle_inventar_tab():
-  print('erstelle_inventar_tab()')
+  logger.debug('erstelle_inventar_tab()')
   """Erstellt das komplette Inventar-Tab dynamisch"""
   inventar_layout = erstelle_inventar_layout()
   raumschiff_layout = erstelle_raumschiff_uebersicht()
@@ -1147,10 +1170,11 @@ lTab_Shop = [
 
 lLog = GAMESTATE['Log']
 sLog = '\n'.join(lLog[::-1])
-print(sLog)
+logger.debug(f'Game log: {sLog}')
 
 tabs = [
   [sg.Tab('HQ', lTab_HQ, key='tab_HQ')],
+  [sg.Tab('Arbeit', lTab_ErdeJobs, key='tab_Arbeit')],
   [sg.Tab('Forschung', lTab_Forschung, key='tab_Forschung')],
   [sg.Tab('Inventar', lTab_Inventory, key='tab_Inventar')],
   [sg.Tab('Planeten', lTab_Planets, key='tab_Planeten')],
@@ -1192,7 +1216,7 @@ LAYOUT = [
 iTicks = GAMESTATE['Ticks']
 iCredits = GAMESTATE['Credits']
 iForschungspunkte = GAMESTATE['Forschungspunkte']
-print(f'{iForschungspunkte = }')
+logger.debug(f'{iForschungspunkte = }')
 inventory = GAMESTATE['Inventar']
 sAktuelle_Forschung = list(SCIENCE.keys())[0]
 
@@ -1203,6 +1227,7 @@ window = sg.Window(config.TITLE, LAYOUT, size=config.WINDOW_SIZE, resizable=True
 aktualisiere_inventar_anzeige()
 aktualisiere_raumschiff_anzeige()
 aktualisiere_inventar_statistiken()
+aktualisiere_erde_jobs_anzeige()
 
 while True:
   event, values = window.read(timeout=100)  # kurzer timeout!
@@ -1211,8 +1236,8 @@ while True:
   # Echtzeit-Tick-Handling
   if current_time - letzter_tick >= TICK_INTERVAL:
     iTicks += 1
-    print(f'Cycle: {iTicks}')
-    print(f'Forschungspunkte: {iForschungspunkte}')
+    logger.debug(f'Cycle: {iTicks}')
+    logger.debug(f'Forschungspunkte: {iForschungspunkte}')
     letzter_tick = current_time
     window['tCycles'].update(f'Cycle: {iTicks}')
     window['tCredits'].update(f'Credits: {iCredits}')
@@ -1306,6 +1331,15 @@ while True:
           missionen_aktiv.remove(mission)
     aktualisiere_missionen_anzeige()
 
+    # Earth Jobs processing
+    for job in erde_jobs_aktiv[:]:
+      if job.aktiv:
+        abgeschlossen = job.tick()
+        if abgeschlossen:
+          beende_erde_job(job)
+          erde_jobs_aktiv.remove(job)
+    aktualisiere_erde_jobs_anzeige()
+
   # Reise-Anzeige regelmäßig aktualisieren
     aktualisiere_reise_anzeige()
 
@@ -1325,8 +1359,34 @@ while True:
     aktualisiere_inventar_statistiken()
 
   if event == 'TabGroup_Main':
-    window['img_Spalte3'].update(filename=rf"images\{values['TabGroup_Main']}.png")
-    if values['TabGroup_Main'] == 'TAB_FORSCHUNG':
+    current_tab = values['TabGroup_Main']
+    
+    # Map of tab keys to their corresponding image filenames (without .png)
+    image_map = {
+        'tab_HQ': 'TAB_HQ',
+        'tab_Forschung': 'TAB_FORSCHUNG',
+        'tab_Inventar': 'TAB_INVENTAR',
+        'tab_Planeten': 'TAB_PLANETEN',
+        'tab_Shop': 'TAB_SHOP',
+        'tab_Werkstatt': 'TAB_WERKSTATT',
+        'tab_Reisen': 'TAB_REISEN',
+        'tab_Mondmissionen': 'TAB_MONDMISSIONEN'
+    }
+    
+    image_to_load = image_map.get(current_tab, 'TAB_HQ') # Default to HQ
+    image_path = rf"images\{image_to_load}.png"
+    
+    try:
+      window['img_Spalte3'].update(filename=image_path)
+    except Exception as e:
+      logger.warning(f"Failed to update image for {current_tab}: {e}")
+      # Silent fallback to HQ for production stability
+      try:
+        window['img_Spalte3'].update(filename=r"images\TAB_HQ.png")
+      except:
+        pass
+        
+    if current_tab == 'tab_Forschung':
       zeige_Forschung(sAktuelle_Forschung)
 
   elif event == 'HQ':
@@ -1374,7 +1434,7 @@ while True:
     baue(sAktuelles_Bauen)
 
   elif event == 'stop_bauen':
-    print('stop_bauen')
+    logger.debug('stop_bauen')
 
   elif event == 'storniere_bauauftrag':
     if bau_queue:
@@ -1383,6 +1443,19 @@ while True:
       aktualisiere_bau_queue_anzeige()
     else:
       add2log("Keine Bauaufträge zu stornieren.")
+
+  # Earth Jobs event handling
+  elif event and event.startswith('start_erde_job_'):
+    job_name = event.replace('start_erde_job_', '')
+    if job_name in ERDE_JOBS:
+      # Show job info
+      job_info = ERDE_JOBS[job_name]
+      window['erde_job_beschreibung'].update(value=job_info['beschreibung'])
+      belohnung_text = ', '.join([f"{menge} {ressource}" for ressource, menge in job_info['belohnung'].items()])
+      window['erde_job_belohnung'].update(value=belohnung_text)
+      # Start the job
+      starte_erde_job(job_name)
+
 
   elif event == 'Save':
     dump_gamestate()
@@ -1394,8 +1467,8 @@ while True:
     iForschungspunkte = GAMESTATE['Forschungspunkte']
 
   elif event == 'refreshwindow':
-    print('window.refresh()')
-    print(SCIENCE[sAktuelle_Forschung])
+    logger.debug('window.refresh()')
+    logger.debug(SCIENCE[sAktuelle_Forschung])
     window.refresh()
 
   elif event.startswith('baue_'):
@@ -1471,7 +1544,7 @@ while True:
         aktualisiere_raumschiff_anzeige()
         aktualisiere_inventar_statistiken()
 
-  # print(f'{event = } {iCredits = }')
+  # logger.debug(f'{event = } {iCredits = }')
 
   # for x, y in GAMESTATE['Forschung'].items():
   #   print(x, y)

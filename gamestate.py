@@ -140,16 +140,25 @@ GAMESTATE = {
   },
 
   'Inventar': {
+    # Basis-Materialien
     'Baumaterial': 0,
-    'Eisenbarren': 0,  # Hinzugefügt
-    'Roheisen': 10,    # Hinzugefügt für Eisenbarren-Produktion
-    'Staub': 5,        # Hinzugefügt für Baumaterial
+    'Eisenbarren': 0,
+    'Roheisen': 10,      # Für Eisenbarren-Produktion
+    'Staub': 5,          # Für Baumaterial
     'Gold': 0,
     'Eisen': 0,
     'Stein': 0,
     'Werkzeug': 0,
-    'Wasser': 10,      # Erhöht für Produktion
-    'Raumsonde': 0,    # Hinzugefügt
+    'Wasser': 10,        # Für Produktion
+    'Raumsonde': 0,
+    # Mondmission-Belohnungen
+    'Mondgestein': 0,
+    'Seltene_Mineralien': 0,
+    'Mondstation_Modul': 0,
+    'Astronaut_Erfahrung': 0,
+    'Lebenserhaltung_Upgrade': 0,
+    'Kommunikations_Upgrade': 0,
+    'Mondbasen Bauplan': 0,
   },
 
   'Planeten': {
@@ -204,16 +213,4 @@ GAMESTATE = {
           'erforscht': False,
       }
   },
-
-  # Erweitern Sie auch das Inventar:
-  'Inventar': {
-      # ... bestehende Einträge ...
-      'Mondgestein': 0,
-      'Seltene_Mineralien': 0,
-      'Mondstation_Modul': 0,
-      'Astronaut_Erfahrung': 0,
-      'Lebenserhaltung_Upgrade': 0,
-      'Kommunikations_Upgrade': 0,
-      'Mondbasen Bauplan': 0,
-  }
 }
