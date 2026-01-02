@@ -1353,61 +1353,61 @@ while True:
     dump_gamestate()
     break
 
-  if event == 'TabGroup_Main' and values['TabGroup_Main'] == 'TAB_INVENTAR':
-    aktualisiere_inventar_anzeige()
-    aktualisiere_raumschiff_anzeige()
-    aktualisiere_inventar_statistiken()
-
-  if event == 'TabGroup_Main':
-    current_tab = values['TabGroup_Main']
-    
-    # Map of tab keys to their corresponding image filenames (without .png)
+  def safe_update_image(image_key):
+    """Safely updates the main image with fallback."""
+    # Map of keys to their corresponding image filenames (without .png)
     image_map = {
         'tab_HQ': 'TAB_HQ',
+        'tab_Arbeit': 'TAB_HQ', # Fallback to HQ for now
         'tab_Forschung': 'TAB_FORSCHUNG',
         'tab_Inventar': 'TAB_INVENTAR',
         'tab_Planeten': 'TAB_PLANETEN',
         'tab_Shop': 'TAB_SHOP',
         'tab_Werkstatt': 'TAB_WERKSTATT',
         'tab_Reisen': 'TAB_REISEN',
-        'tab_Mondmissionen': 'TAB_MONDMISSIONEN'
+        'tab_Mondmissionen': 'TAB_MONDMISSIONEN',
+        'HQ': 'TAB_HQ',
+        'Forschung': 'TAB_FORSCHUNG',
+        'Inventar': 'TAB_INVENTAR',
+        'Planeten': 'TAB_PLANETEN',
+        'Shop': 'TAB_SHOP'
     }
     
-    image_to_load = image_map.get(current_tab, 'TAB_HQ') # Default to HQ
+    image_to_load = image_map.get(image_key, 'TAB_HQ')
     image_path = rf"images\{image_to_load}.png"
     
     try:
       window['img_Spalte3'].update(filename=image_path)
     except Exception as e:
-      logger.warning(f"Failed to update image for {current_tab}: {e}")
-      # Silent fallback to HQ for production stability
+      logger.warning(f"Failed to update image for {image_key} ({image_path}): {e}")
       try:
         window['img_Spalte3'].update(filename=r"images\TAB_HQ.png")
       except:
         pass
+
+  if event == 'TabGroup_Main' and values['TabGroup_Main'] == 'tab_Inventar':
+    aktualisiere_inventar_anzeige()
+    aktualisiere_raumschiff_anzeige()
+    aktualisiere_inventar_statistiken()
+
+  if event == 'TabGroup_Main':
+    current_tab = values['TabGroup_Main']
+    safe_update_image(current_tab)
         
     if current_tab == 'tab_Forschung':
       zeige_Forschung(sAktuelle_Forschung)
 
-  elif event == 'HQ':
-    window['tab_HQ'].select()
-    window['img_Spalte3'].update(filename=r'images\TAB_HQ.png')
-
-  elif event == 'Forschung':
-    window['tab_Forschung'].select()
-    window['img_Spalte3'].update(filename=r'images\TAB_FORSCHUNG.png')
-
-  elif event == 'Inventar':
-    window['tab_Inventar'].select()
-    window['img_Spalte3'].update(filename=r'images\TAB_INVENTAR.png')
-
-  elif event == 'Planeten':
-    window['tab_Planeten'].select()
-    window['img_Spalte3'].update(filename=r'images\TAB_PLANETEN.png')
-
-  elif event == 'Shop':
-    window['tab_Shop'].select()
-    window['img_Spalte3'].update(filename=r'images\TAB_SHOP.png')
+  elif event in ['HQ', 'Forschung', 'Inventar', 'Planeten', 'Shop']:
+    tab_map = {
+        'HQ': 'tab_HQ',
+        'Forschung': 'tab_Forschung',
+        'Inventar': 'tab_Inventar',
+        'Planeten': 'tab_Planeten',
+        'Shop': 'tab_Shop'
+    }
+    target_tab = tab_map.get(event)
+    window[target_tab].select()
+    safe_update_image(event)
 
   elif 'Erforsche ' in event:
     _, sAktuelle_Forschung = event.split(' ')
