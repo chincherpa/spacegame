@@ -1459,12 +1459,14 @@ while True:
 
   elif event == 'Save':
     dump_gamestate()
+    add2log("Spielstand erfolgreich gespeichert!")
 
   elif event == 'Load':
     GAMESTATE = load_gamestate()
     iTicks = GAMESTATE['Ticks']
     iCredits = GAMESTATE['Credits']
     iForschungspunkte = GAMESTATE['Forschungspunkte']
+    add2log("Spielstand erfolgreich geladen!")
 
   elif event == 'refreshwindow':
     logger.debug('window.refresh()')
