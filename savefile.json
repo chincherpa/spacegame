@@ -1,7 +1,7 @@
 {
-  "Ticks": 375,
-  "Credits": 28,
-  "Forschungspunkte": 18,
+  "Ticks": 451,
+  "Credits": 32,
+  "Forschungspunkte": 24,
   "Astronauten": {
     "Erde": 10,
     "Mond": 0,
@@ -40,7 +40,7 @@
   },
   "Forschung": {
     "Eisenbarren": {
-      "erforscht": false
+      "erforscht": true
     },
     "Baumaterial": {
       "erforscht": false
@@ -127,8 +127,8 @@
   },
   "Inventar": {
     "Baumaterial": 0,
-    "Eisenbarren": 0,
-    "Roheisen": 10,
+    "Eisenbarren": 2,
+    "Roheisen": 11,
     "Staub": 5,
     "Gold": 0,
     "Eisen": 0,
@@ -167,7 +167,19 @@
     }
   },
   "Log": [
-    "Spiel gestartet"
+    "Spiel gestartet",
+    "391\tErforsche 'Eisenbarren'",
+    "394\tForschung von 'Eisenbarren' beendet",
+    "398\tBaue 'Eisenbarren' - Materialien verbraucht",
+    "400\t'Eisenbarren' erfolgreich gebaut - ins Inventar gelegt",
+    "401\tBaue 'Eisenbarren' - Materialien verbraucht",
+    "403\t'Eisenbarren' erfolgreich gebaut - ins Inventar gelegt",
+    "411\tBaue 5x 'Eisenbarren' - Materialien verbraucht",
+    "415\tBau von 'Eisenbarren' gestoppt - Materialien zur\u00fcckgegeben",
+    "433\tErd-Job 'Laborarbeit' gestartet",
+    "436\tErd-Job 'Laborarbeit' abgeschlossen! Belohnung: 2 Forschungspunkte",
+    "437\tErd-Job 'Bergbau' gestartet",
+    "439\tErd-Job 'Bergbau' abgeschlossen! Belohnung: 3 Roheisen"
   ],
   "Mondmissionen": {
     "Erkundung und Probenentnahme": {

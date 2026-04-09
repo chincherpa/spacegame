@@ -39,6 +39,7 @@ bBauen_aktiv = False
 iAktueller_Baufortschritt = None
 sAktuelles_Bauen = None
 iMax_Bauen = None
+iAnzahl_Bauen = 1  # Anzahl der aktuell im Bau befindlichen Items
 bau_queue = []  # Queue for planned build orders
 
 # Active missions
@@ -266,12 +267,32 @@ def zeige_bauen(sAktuelles_Bauen):
 
     window['desc_materialien'].update(value=materialien_text, visible=True)
 
-    # Prüfen ob alle Materialien verfügbar sind
-    kann_bauen = True
+    # Maximale Anzahl berechnen (limitiert durch verfügbare Materialien)
+    max_anzahl = None
     for material, anzahl in item['material'].items():
-      if GAMESTATE['Inventar'].get(material, 0) < anzahl:
-        kann_bauen = False
-        break
+      verfügbar = GAMESTATE['Inventar'].get(material, 0)
+      mögliche = verfügbar // anzahl if anzahl > 0 else 999
+      if max_anzahl is None or mögliche < max_anzahl:
+        max_anzahl = mögliche
+    max_anzahl = max(max_anzahl or 0, 0)
+
+    # Spinner aktualisieren
+    if max_anzahl > 0:
+      spin_values = list(range(1, max_anzahl + 1))
+      aktuell = window['anzahl_bauen'].get()
+      try:
+        aktuell = int(aktuell)
+      except (ValueError, TypeError):
+        aktuell = 1
+      aktuell = min(max(aktuell, 1), max_anzahl)
+      window['anzahl_bauen'].update(values=spin_values, value=aktuell, visible=True)
+      window['label_anzahl_bauen'].update(visible=True)
+    else:
+      window['anzahl_bauen'].update(values=[1], value=1, visible=False)
+      window['label_anzahl_bauen'].update(visible=False)
+
+    # Prüfen ob alle Materialien für mindestens 1 Item verfügbar sind
+    kann_bauen = max_anzahl >= 1
 
     # Bauen-Button nur anzeigen wenn möglich und nicht bereits am Bauen
     if kann_bauen and not bBauen_aktiv:
@@ -304,34 +325,43 @@ def bauauftrag_hinzufuegen(item_name):
 def baue(sAktuelles_Bauen):
   logger.debug('baue()')
   """Startet den Bau-Prozess"""
-  global bBauen_aktiv, iAktueller_Baufortschritt, iMax_Bauen
+  global bBauen_aktiv, iAktueller_Baufortschritt, iMax_Bauen, iAnzahl_Bauen
 
-  # Prüfen ob alle Materialien verfügbar sind
+  # Anzahl aus Spinner lesen
+  try:
+    iAnzahl_Bauen = int(window['anzahl_bauen'].get())
+  except (ValueError, TypeError):
+    iAnzahl_Bauen = 1
+  iAnzahl_Bauen = max(iAnzahl_Bauen, 1)
+
+  # Prüfen ob alle Materialien für die gewünschte Anzahl verfügbar sind
   item = GAMESTATE['Werkstatt'][sAktuelles_Bauen]
   for material, anzahl in item['material'].items():
-    if GAMESTATE['Inventar'].get(material, 0) < anzahl:
-      add2log(f"Nicht genug {material} zum Bauen von {sAktuelles_Bauen}")
+    if GAMESTATE['Inventar'].get(material, 0) < anzahl * iAnzahl_Bauen:
+      add2log(f"Nicht genug {material} zum Bauen von {iAnzahl_Bauen}x {sAktuelles_Bauen}")
       return
 
-  # Materialien sofort abziehen
+  # Materialien sofort abziehen (für alle Items auf einmal)
   for material, anzahl in item['material'].items():
-    GAMESTATE['Inventar'][material] -= anzahl
+    GAMESTATE['Inventar'][material] -= anzahl * iAnzahl_Bauen
 
-  # Bau-Prozess starten
+  # Bau-Prozess starten (Dauer skaliert mit Anzahl)
   bBauen_aktiv = True
-  iMax_Bauen = int(item['dauer'] / config.TICK)
+  iMax_Bauen = int(item['dauer'] / config.TICK) * iAnzahl_Bauen
   iAktueller_Baufortschritt = 0
 
   # UI aktualisieren
   window['do_bauen'].update(visible=False)
   window['bauen_unmöglich'].update(visible=False)
+  window['anzahl_bauen'].update(visible=False)
+  window['label_anzahl_bauen'].update(visible=False)
   window['progressbar_Bauen'].update(current_count=0, max=iMax_Bauen, visible=True)
   window['stop_bauen'].update(visible=True)
 
   # Inventar-Anzeige aktualisieren
   aktualisiere_inventar_anzeige()
 
-  add2log(f"Baue '{sAktuelles_Bauen}' - Materialien verbraucht")
+  add2log(f"Baue {iAnzahl_Bauen}x '{sAktuelles_Bauen}' - Materialien verbraucht")
 
 def beende_bauen(sAktuelles_Bauen):
   logger.debug('beende_bauen()')
@@ -341,14 +371,14 @@ def beende_bauen(sAktuelles_Bauen):
   # Gebauten Gegenstand zum Inventar/Raumschiffe hinzufügen
   if sAktuelles_Bauen in ['Mondlander', 'Rakete']:
     # Raumschiffe zur Erde hinzufügen
-    GAMESTATE['Raumschiffe']['Erde'][sAktuelles_Bauen]['Anzahl'] += 1
-    add2log(f"'{sAktuelles_Bauen}' erfolgreich gebaut - zur Erde hinzugefügt")
+    GAMESTATE['Raumschiffe']['Erde'][sAktuelles_Bauen]['Anzahl'] += iAnzahl_Bauen
+    add2log(f"{iAnzahl_Bauen}x '{sAktuelles_Bauen}' erfolgreich gebaut - zur Erde hinzugefügt")
   else:
     # Andere Gegenstände ins Inventar
     if sAktuelles_Bauen not in GAMESTATE['Inventar']:
       GAMESTATE['Inventar'][sAktuelles_Bauen] = 0
-    GAMESTATE['Inventar'][sAktuelles_Bauen] += 1
-    add2log(f"'{sAktuelles_Bauen}' erfolgreich gebaut - ins Inventar gelegt")
+    GAMESTATE['Inventar'][sAktuelles_Bauen] += iAnzahl_Bauen
+    add2log(f"{iAnzahl_Bauen}x '{sAktuelles_Bauen}' erfolgreich gebaut - ins Inventar gelegt")
 
   dump_gamestate()
   # Bau-Prozess beenden
@@ -370,19 +400,39 @@ def stoppe_bauen():
   global bBauen_aktiv
 
   if bBauen_aktiv and sAktuelles_Bauen:
-    # Materialien zurückgeben
     item = GAMESTATE['Werkstatt'][sAktuelles_Bauen]
-    for material, anzahl in item['material'].items():
-      GAMESTATE['Inventar'][material] += anzahl
+
+    # Berechne fertige und noch offene Items anhand des Fortschritts
+    ticks_pro_item = int(item['dauer'] / config.TICK)
+    fertige_items = iAktueller_Baufortschritt // ticks_pro_item if ticks_pro_item > 0 else 0
+    fertige_items = min(fertige_items, iAnzahl_Bauen)
+    offene_items = iAnzahl_Bauen - fertige_items
+
+    # Fertige Items ins Inventar/Raumschiffe
+    if fertige_items > 0:
+      if sAktuelles_Bauen in ['Mondlander', 'Rakete']:
+        GAMESTATE['Raumschiffe']['Erde'][sAktuelles_Bauen]['Anzahl'] += fertige_items
+        add2log(f"{fertige_items}x '{sAktuelles_Bauen}' fertiggestellt")
+      else:
+        if sAktuelles_Bauen not in GAMESTATE['Inventar']:
+          GAMESTATE['Inventar'][sAktuelles_Bauen] = 0
+        GAMESTATE['Inventar'][sAktuelles_Bauen] += fertige_items
+        add2log(f"{fertige_items}x '{sAktuelles_Bauen}' fertiggestellt")
+
+    # Materialien für offene Items zurückgeben
+    if offene_items > 0:
+      for material, anzahl in item['material'].items():
+        GAMESTATE['Inventar'][material] += anzahl * offene_items
+      add2log(f"Materialien für {offene_items}x '{sAktuelles_Bauen}' zurückgegeben")
 
     bBauen_aktiv = False
     window['progressbar_Bauen'].update(visible=False)
     window['stop_bauen'].update(visible=False)
 
+    dump_gamestate()
     aktualisiere_inventar_anzeige()
+    aktualisiere_raumschiff_anzeige()
     zeige_bauen(sAktuelles_Bauen)
-
-    add2log(f"Bau von '{sAktuelles_Bauen}' gestoppt - Materialien zurückgegeben")
 
 def erforsche(sAktuelle_Forschung):
   logger.debug('erforsche()')
@@ -875,11 +925,15 @@ def erstelle_erde_jobs_tab():
     
     job_buttons = []
     for job_name, job_info in ERDE_JOBS.items():
+        belohnung_text = ', '.join([f"{menge} {ressource}" for ressource, menge in job_info['belohnung'].items()])
         job_buttons.append([
             sg.Button(job_name, key=f'start_erde_job_{job_name}'),
             sg.Text(f"({job_info.get('benötigt_arbeiter', 1)} Arbeiter, {job_info['dauer']} Zyklen)")
         ])
-    
+        job_buttons.append([
+            sg.Text(f"  {job_info['beschreibung']}  →  {belohnung_text}", size=(60, 2), font=('Arial', 8))
+        ])
+
     return [
         [sg.Text('Arbeiten auf der Erde', font=('Arial', 12, 'bold'))],
         [sg.Text('Setze Arbeiter ein um Ressourcen und Forschungspunkte zu verdienen.')],
@@ -888,11 +942,6 @@ def erstelle_erde_jobs_tab():
         [sg.HorizontalSeparator()],
         [sg.Text('Verfügbare Jobs:', font=('Arial', 10, 'bold'))],
         *job_buttons,
-        [sg.HorizontalSeparator()],
-        [sg.Text('Job-Beschreibung:', font=('Arial', 10, 'bold'))],
-        [sg.Text('', key='erde_job_beschreibung', size=(50, 2))],
-        [sg.Text('Belohnung:', font=('Arial', 10))],
-        [sg.Text('', key='erde_job_belohnung', size=(50, 1))],
         [sg.HorizontalSeparator()],
         [sg.Text('Laufende Jobs:', font=('Arial', 10, 'bold'))],
         [sg.Multiline('', key='aktive_erde_jobs', size=(50, 5), disabled=True)],
@@ -1315,7 +1364,7 @@ lTab_Werkstatt = [
     sg.Column([
       [sg.Text('', key='desc_bauen', size=(40, 4))],
       [sg.Text('', key='desc_materialien', size=(40, 12), visible=False)],
-      [sg.Button('Bauen', key='do_bauen', visible=False)],
+      [sg.Text('Anzahl:', key='label_anzahl_bauen', visible=False), sg.Spin(values=[1], initial_value=1, key='anzahl_bauen', size=(5, 1), visible=False), sg.Button('Bauen', key='do_bauen', visible=False)],
       [sg.Text('', key='bauen_unmöglich', visible=False, text_color='red')],
       [sg.ProgressBar(0, orientation='h', size=(30, 20), key='progressbar_Bauen', visible=False)],
       [sg.Button('Bauen stoppen', key='stop_bauen', visible=False)],
@@ -1697,12 +1746,6 @@ while True:
   elif event and event.startswith('start_erde_job_'):
     job_name = event.replace('start_erde_job_', '')
     if job_name in ERDE_JOBS:
-      # Show job info
-      job_info = ERDE_JOBS[job_name]
-      window['erde_job_beschreibung'].update(value=job_info['beschreibung'])
-      belohnung_text = ', '.join([f"{menge} {ressource}" for ressource, menge in job_info['belohnung'].items()])
-      window['erde_job_belohnung'].update(value=belohnung_text)
-      # Start the job
       starte_erde_job(job_name)
 
 
