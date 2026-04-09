@@ -1,3 +1,9 @@
+
+print('#'*50)
+print('#'*50)
+print('#'*50)
+print('#'*50)
+print('#'*50)
 GAMESTATE = {
   'Ticks': 0,
   'Credits': 10,
@@ -128,6 +134,15 @@ GAMESTATE = {
         'Werkzeug': 20
       },
     },
+    'Mondbasen Bauplan': {
+      'beschreibung': 'Detaillierte Baupläne für eine Mondbasis. Erfordert Mondproben und Konstruktionswissen.',
+      'dauer': 6,
+      'material': {
+        'Baumaterial': 5,
+        'Werkzeug': 3,
+        'Mondgestein': 2,
+      },
+    },
     'Weltraumstation': {
       'beschreibung': 'Text Beschreibung Weltraumstation',
       'dauer': 10,
@@ -146,8 +161,6 @@ GAMESTATE = {
     'Roheisen': 10,      # Für Eisenbarren-Produktion
     'Staub': 5,          # Für Baumaterial
     'Gold': 0,
-    'Eisen': 0,
-    'Stein': 0,
     'Werkzeug': 0,
     'Wasser': 10,        # Für Produktion
     'Raumsonde': 0,

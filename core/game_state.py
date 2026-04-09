@@ -102,8 +102,6 @@ DEFAULT_STATE = {
         'Roheisen': 10,
         'Staub': 5,
         'Gold': 0,
-        'Eisen': 0,
-        'Stein': 0,
         'Werkzeug': 0,
         'Wasser': 10,
         'Raumsonde': 0,

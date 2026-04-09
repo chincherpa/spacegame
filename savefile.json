@@ -1,7 +1,7 @@
 {
-  "Ticks": 451,
-  "Credits": 32,
-  "Forschungspunkte": 24,
+  "Ticks": 530,
+  "Credits": 36,
+  "Forschungspunkte": 32,
   "Astronauten": {
     "Erde": 10,
     "Mond": 0,
@@ -128,13 +128,11 @@
   "Inventar": {
     "Baumaterial": 0,
     "Eisenbarren": 2,
-    "Roheisen": 11,
-    "Staub": 5,
+    "Roheisen": 14,
+    "Staub": 7,
     "Gold": 0,
-    "Eisen": 0,
-    "Stein": 0,
     "Werkzeug": 0,
-    "Wasser": 10,
+    "Wasser": 12,
     "Raumsonde": 0,
     "Mondgestein": 0,
     "Seltene_Mineralien": 0,
@@ -179,7 +177,17 @@
     "433\tErd-Job 'Laborarbeit' gestartet",
     "436\tErd-Job 'Laborarbeit' abgeschlossen! Belohnung: 2 Forschungspunkte",
     "437\tErd-Job 'Bergbau' gestartet",
-    "439\tErd-Job 'Bergbau' abgeschlossen! Belohnung: 3 Roheisen"
+    "439\tErd-Job 'Bergbau' abgeschlossen! Belohnung: 3 Roheisen",
+    "475\tErd-Job 'Laborarbeit' gestartet",
+    "478\tErd-Job 'Laborarbeit' abgeschlossen! Belohnung: 2 Forschungspunkte",
+    "479\tErd-Job 'Staubsammlung' gestartet",
+    "479\tErd-Job 'Wasseraufbereitung' gestartet",
+    "479\tErd-Job 'Bergbau' gestartet",
+    "480\tErd-Job 'Laborarbeit' gestartet",
+    "481\tErd-Job 'Staubsammlung' abgeschlossen! Belohnung: 2 Staub",
+    "481\tErd-Job 'Wasseraufbereitung' abgeschlossen! Belohnung: 2 Wasser",
+    "481\tErd-Job 'Bergbau' abgeschlossen! Belohnung: 3 Roheisen",
+    "483\tErd-Job 'Laborarbeit' abgeschlossen! Belohnung: 2 Forschungspunkte"
   ],
   "Mondmissionen": {
     "Erkundung und Probenentnahme": {

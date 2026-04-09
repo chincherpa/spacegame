@@ -1,27 +1,27 @@
 SCIENCE = {
   'Eisenbarren': {
-    'beschreibung': 'Erforsche die Produktion von Eisenbarren. Aus Eisenbarren kannst du Baumaterial und Werkzeug herstellen',
+    'beschreibung': 'Erforsche das Herstellen von Eisenbarren. Aus Eisenbarren kannst du Baumaterial und Werkzeug herstellen',
     'erforschbar nach': '',
     'dauer': 3,
     'kosten': 5,
   },
 
   'Baumaterial': {
-    'beschreibung': 'Erforsche das Herstellen von Baumaterial aus den auf dem Mond verfügbaren Ressourcen. Mit Baumaterial kannst du Weltraumstationen bauen.',
+    'beschreibung': 'Erforsche das Herstellen von Baumaterial. Mit Baumaterial kannst du Weltraumstationen bauen.',
     'erforschbar nach': 'Eisenbarren',
     'dauer': 3,
     'kosten': 1,
   },
 
   'Werkzeug': {
-    'beschreibung': 'Erforsche die Herstellung von Werkzeug aus Eisenbarren. Mit Werkzeug und Baumaterial kannst du eine Weltraumstation bauen.',
+    'beschreibung': 'Erforsche das Herstellen von Werkzeug aus Eisenbarren. Mit Werkzeug und Baumaterial kannst du eine Weltraumstation bauen.',
     'erforschbar nach': 'Eisenbarren',
     'dauer': 5,
     'kosten': 2,
   },
 
   'Treibstoff': {
-    'beschreibung': 'Erforschung der Herstellung von Treibstoff aus den auf dem Mond verfügbaren Ressourcen',
+    'beschreibung': 'Erforsche das Herstellen von Treibstoff',
     'erforschbar nach': 'Werkzeug',
     'dauer': 6,
     'kosten': 4,
@@ -61,11 +61,11 @@ SCIENCE = {
   },
 
   'Mondbasen Bauplan': {
-    'beschreibung': 'Baupläne für Mondbasen',
+    'beschreibung': 'Erforsche den Entwurf von Mondbasen. Mit dem Bauplan kannst du in der Werkstatt detaillierte Konstruktionspläne herstellen, die für den Bau einer Weltraumstation benötigt werden.',
     'erforschbar nach': 'Rakete',
-    'Kosten Forschungspunkte': 5,
-    'dauer': 5,
-    'kosten': 5,
+    'Kosten Forschungspunkte': 15,
+    'dauer': 10,
+    'kosten': 20,
   },
 
   'Weltraumstation': {

@@ -487,15 +487,18 @@ def erstelle_inventar_layout():
   # Trennlinie
   inventar_zeilen.append([sg.HorizontalSeparator()])
 
-  # Dynamische Einträge für jedes Material
+  # Dynamische Einträge für jedes Material (nur sichtbar wenn anzahl > 0)
   for material, anzahl in GAMESTATE['Inventar'].items():
     beschreibung = get_material_beschreibung(material)
-    farbe = 'green' if anzahl > 0 else 'gray'
-
+    print(f'{beschreibung = }')
     inventar_zeilen.append([
-      sg.Text(material, size=(20, 1), key=f'inv_name_{material}'),
-      sg.Text(str(anzahl), size=(10, 1), key=f'inv_anzahl_{material}', text_color=farbe),
-      sg.Text(beschreibung, size=(30, 1), key=f'inv_desc_{material}', font=('Arial', 8))
+      sg.Column([
+        [
+          sg.Text(material, size=(20, 1), key=f'inv_name_{material}'),
+          sg.Text(str(anzahl), size=(10, 1), key=f'inv_anzahl_{material}'),
+          sg.Text(beschreibung, size=(35, 2), key=f'inv_desc_{material}', font=('Arial', 8)),
+        ]
+      ], key=f'inv_row_{material}', visible=anzahl > 0, pad=(0, 0))
     ])
 
   return inventar_zeilen
@@ -503,20 +506,17 @@ def erstelle_inventar_layout():
 def get_material_beschreibung(material):
   logger.debug('get_material_beschreibung()')
   """Gibt eine Beschreibung für jedes Material zurück"""
-  return MATERIALS.get(material, 'Unbekanntes Material')
+  return MATERIALS.get(material, {'Beschreibung': f'Unbekanntes Material: {material}'}).get('Beschreibung', 'no description found')
 
 def aktualisiere_inventar_anzeige():
   logger.debug('aktualisiere_inventar_anzeige()')
   """Aktualisiert die Inventar-Anzeige dynamisch"""
   for material, anzahl in GAMESTATE['Inventar'].items():
     try:
-      # Anzahl aktualisieren
-      farbe = 'green' if anzahl > 0 else 'gray'
-      window[f'inv_anzahl_{material}'].update(value=str(anzahl), text_color=farbe)
+      window[f'inv_anzahl_{material}'].update(value=str(anzahl))
+      window[f'inv_row_{material}'].update(visible=anzahl > 0)
     except KeyError:
-      # Material existiert noch nicht in der Anzeige - Layout neu erstellen
-      logger.debug(f"Material {material} nicht in Anzeige gefunden - Layout wird neu erstellt")
-      # Hier könntest du das komplette Layout neu erstellen, falls nötig
+      logger.debug(f"Material {material} nicht in Anzeige gefunden")
       pass
 
 def aktualisiere_raumschiff_anzeige():
@@ -794,6 +794,20 @@ def aktualisiere_alle_anzeigen():
   aktualisiere_inventar_statistiken()
   aktualisiere_reise_anzeige()
   aktualisiere_planeten_anzeige()
+  aktualisiere_tab_sichtbarkeit()
+
+def aktualisiere_tab_sichtbarkeit():
+  """Blendet Tabs ein/aus je nach Spielfortschritt."""
+  mond = GAMESTATE['Planeten']['Mond']['entdeckt']
+  werkstatt = any(v['erforscht'] for v in GAMESTATE['Forschung'].values())
+  try:
+    window['tab_Werkstatt'].update(visible=werkstatt)
+    window['tab_Planeten'].update(visible=mond)
+    window['tab_Reisen'].update(visible=mond)
+    window['tab_Mondmissionen'].update(visible=mond)
+    window['tab_Mining'].update(visible=mond)
+  except Exception:
+    pass
 
 def aktualisiere_planeten_anzeige():
   logger.debug('aktualisiere_planeten_anzeige()')
@@ -1460,20 +1474,21 @@ lLog = GAMESTATE['Log']
 sLog = '\n'.join(lLog[::-1])
 logger.debug(f'Game log: {sLog}')
 
+_mond = GAMESTATE['Planeten']['Mond']['entdeckt']
+_werkstatt_freigeschaltet = any(v['erforscht'] for v in GAMESTATE['Forschung'].values())
+
 tabs = [
   [sg.Tab('HQ', lTab_HQ, key='tab_HQ')],
   [sg.Tab('Arbeit', lTab_ErdeJobs, key='tab_Arbeit')],
   [sg.Tab('Forschung', lTab_Forschung, key='tab_Forschung')],
+  [sg.Tab('Werkstatt', lTab_Werkstatt, key='tab_Werkstatt', visible=_werkstatt_freigeschaltet)],
   [sg.Tab('Inventar', lTab_Inventory, key='tab_Inventar')],
-  [sg.Tab('Planeten', lTab_Planets, key='tab_Planeten')],
   [sg.Tab('Shop', lTab_Shop, key='tab_Shop')],
-  [sg.Tab('Werkstatt', lTab_Werkstatt, key='tab_Werkstatt')],
+  [sg.Tab('Planeten', lTab_Planets, key='tab_Planeten', visible=_mond)],
+  [sg.Tab('Reisen', lTab_Reisen, key='tab_Reisen', visible=_mond)],
+  [sg.Tab('Mondmissionen', lTab_Mondmissionen, key='tab_Mondmissionen', visible=_mond)],
+  [sg.Tab('Mining', lTab_Mining, key='tab_Mining', visible=_mond)],
 ]
-
-if GAMESTATE['Planeten']['Mond']['entdeckt']:
-  tabs.append([sg.Tab('Reisen', lTab_Reisen, key='tab_Reisen')])
-  tabs.append([sg.Tab('Mondmissionen', lTab_Mondmissionen, key='tab_Mondmissionen')])
-  tabs.append([sg.Tab('Mining', lTab_Mining, key='tab_Mining')])
 
 LAYOUT = [
   [sg.Menu(menu_def)],

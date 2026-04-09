@@ -55,6 +55,10 @@ MATERIALS = {
     'Beschreibung': 'Wertvolle Mineralien',
     'benötigt für': []
     },
+  'Mondbasen Bauplan': {
+    'Beschreibung': 'Detaillierte Konstruktionspläne für eine Mondbasis',
+    'benötigt für': ['Weltraumstation']
+    },
   'Mondstation_Modul': {
     'Beschreibung': 'Vorgefertigte Stationsmodule',
     'benötigt für': []
