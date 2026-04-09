@@ -10,7 +10,7 @@ Mittel:
   - Workshop: Rezept-Abfragen & Produktionsketten
 
 Groß:
-  - Mondmissionen parallel im Hintergrund
+      - Mondmissionen parallel im Hintergrund
   - Planeten-Reisen: Tick-Logik, Zufallsereignisse, Treibstoffverbrauch
   - Mehrere Speicherslots
   - Tutorial
