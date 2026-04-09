@@ -3,3 +3,7 @@
 venv/
 __pycache__/
 *.xlsx
+.pytest_cache/
+Archiv/
+*.pyc
+.vscode/

@@ -46,9 +46,3 @@ lNames = [
 'Wernher_von_Braun',
 'Wilhelm_Röntgen',
 ]
-
-lNames_new = []
-for name in lNames:
-  if not '_' in name:
-    print(name)
-

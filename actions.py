@@ -1,10 +1,11 @@
 ACTIONS = {
     "Erkundung": {
-        "Beschreibung": "Sammeln von Informationen zur geologischen Beschaffenheit des Mondes",
+        "beschreibung": "Sammeln von Informationen zur geologischen Beschaffenheit des Mondes",
           'dauer': 3,
           'kosten': 5000,
           'benötigt_astronauten': 2,
           'benötigt_werkzeug': 1,
+          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 20,
               'Mondgestein': 5,
@@ -17,6 +18,7 @@ ACTIONS = {
           'kosten': 10000,
           'benötigt_astronauten': 2,
           'benötigt_werkzeug': 1,
+          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 20,
               'Mondgestein': 5,
@@ -30,6 +32,7 @@ ACTIONS = {
           'benötigt_astronauten': 3,
           'benötigt_werkzeug': 2,
           'benötigt_baumaterial': 3,
+          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 30,
               'Credits': 8000,
@@ -41,6 +44,7 @@ ACTIONS = {
           'dauer': 2,
           'kosten': 8000,
           'benötigt_astronauten': 1,
+          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 15,
               'Credits': 4000,
@@ -53,6 +57,7 @@ ACTIONS = {
           'kosten': 12000,
           'benötigt_astronauten': 2,
           'benötigt_werkzeug': 1,
+          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 25,
               'Mondgestein': 8,
@@ -66,6 +71,7 @@ ACTIONS = {
           'kosten': 16000,
           'benötigt_astronauten': 3,
           'benötigt_werkzeug': 2,
+          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 35,
               'Credits': 8000,
@@ -78,10 +84,24 @@ ACTIONS = {
           'kosten': 10000,
           'benötigt_astronauten': 2,
           'benötigt_werkzeug': 1,
+          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 20,
               'Credits': 5000,
               'Kommunikations_Upgrade': 1
+          }
+      },
+      'Raumfahrttechnik und -navigation': {
+          'beschreibung': 'Erlernen der grundlegenden Raumfahrttechnik und Navigation im Weltraum',
+          'dauer': 3,
+          'kosten': 10000,
+          'benötigt_astronauten': 2,
+          'benötigt_werkzeug': 1,
+          'erforscht': False,
+          'belohnung': {
+              'Forschungspunkte': 25,
+              'Credits': 6000,
+              'Astronaut_Erfahrung': 2
           }
       },
       'Mondbasen-Design': {
@@ -91,6 +111,7 @@ ACTIONS = {
           'benötigt_astronauten': 4,
           'benötigt_werkzeug': 3,
           'benötigt_baumaterial': 5,
+          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 50,
               'Credits': 15000,

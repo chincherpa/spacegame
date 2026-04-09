@@ -41,11 +41,11 @@ This document contains the feature roadmap and TODO items for the Spacegame proj
 **Current State**:
 - Basic mechanics are present
 - Research tree with dependencies exists
+- Research queue implemented: "In Queue stellen" button appears when research is active; auto-starts next research on completion
 
 **TODO**:
 - Improve prerequisite checking for "erforschbar nach"
 - Add visual connection/list of possible next researches in UI
-- Implement research queue system
 
 ---
 
@@ -55,6 +55,7 @@ This document contains the feature roadmap and TODO items for the Spacegame proj
 **Current State**:
 - Dynamic display implemented
 - Basic material descriptions available
+- Log entries capped at 100 (LOG_MAX_ENTRIES enforced)
 
 **TODO**:
 - Ensure new/found materials can always be displayed immediately
@@ -89,13 +90,14 @@ This document contains the feature roadmap and TODO items for the Spacegame proj
 ---
 
 ### 7. Save/Load System
-**Status**: Basic implementation
+**Status**: Working
 
 **Current State**:
 - Single savefile support exists
+- Autosave every 150 ticks (~5 min) and after research, build, and mission completion
+- Manual save/load via File menu
 
 **TODO**:
-- Add autosave after important changes
 - Implement UI feedback for successful save/restore
 - Enable multiple savegames and overview load menu
 
