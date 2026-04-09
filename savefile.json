@@ -1,7 +1,7 @@
 {
-  "Ticks": 297,
-  "Credits": 24,
-  "Forschungspunkte": 14,
+  "Ticks": 375,
+  "Credits": 28,
+  "Forschungspunkte": 18,
   "Astronauten": {
     "Erde": 10,
     "Mond": 0,
@@ -175,7 +175,7 @@
     },
     "Konstruktion und Reparatur von Strukturen": {
       "erforscht": false,
-      "benötigt_baumaterial": 3
+      "ben\u00c3\u00b6tigt_baumaterial": 3
     },
     "Navigation und Anpassung an die geringere Schwerkraft": {
       "erforscht": false
@@ -189,11 +189,13 @@
     "Lebenserhaltungssysteme": {
       "erforscht": false
     },
-    "Kommunikation und Datenübertragung": {
+    "Kommunikation und Daten\u00c3\u00bcbertragung": {
       "erforscht": false
     },
     "Mondbasen-Design": {
       "erforscht": false
     }
-  }
+  },
+  "AktiveMissionen": [],
+  "AktivesMining": []
 }

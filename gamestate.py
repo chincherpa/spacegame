@@ -213,4 +213,6 @@ GAMESTATE = {
           'erforscht': False,
       }
   },
+
+  'AktivesMining': [],
 }

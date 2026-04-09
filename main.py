@@ -7,11 +7,12 @@ import FreeSimpleGUI as sg
 import config
 from actions import ACTIONS
 from materials import MATERIALS
+from mining import MINING_EXPEDITIONEN
 from science import SCIENCE
 
 # Configure logging - set to DEBUG for development, INFO for production
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.WARNING,
     format='%(asctime)s - %(levelname)s - %(message)s',
     datefmt='%H:%M:%S'
 )
@@ -43,6 +44,10 @@ bau_queue = []  # Queue for planned build orders
 # Active missions
 missionen_aktiv = []
 MISSION_SLOTS = list(ACTIONS.keys())  # Fixed order for UI slot indices
+
+# Active mining expeditions
+mining_aktiv = []
+MINING_SLOTS = 6  # Max parallel expeditions shown in UI
 
 # Earth jobs system - jobs that generate research points and credits
 ERDE_JOBS = {
@@ -110,6 +115,23 @@ class MissionInstance:
     return False
 
 
+class MiningInstance:
+    """Represents an active mining expedition on a planet."""
+    def __init__(self, planet):
+        self.planet = planet
+        self.fortschritt = 0
+        self.max_fortschritt = MINING_EXPEDITIONEN[planet]['dauer']
+        self.aktiv = True
+
+    def tick(self):
+        if self.aktiv:
+            self.fortschritt += 1
+            if self.fortschritt >= self.max_fortschritt:
+                self.aktiv = False
+                return True
+        return False
+
+
 def load_gamestate():
   logger.debug('load_gamestate()')
   try:
@@ -127,6 +149,11 @@ for _m in GAMESTATE.get('AktiveMissionen', []):
         _mi = MissionInstance(_m['name'])
         _mi.fortschritt = _m['fortschritt']
         missionen_aktiv.append(_mi)
+for _m in GAMESTATE.get('AktivesMining', []):
+    if _m['planet'] in MINING_EXPEDITIONEN:
+        _mi = MiningInstance(_m['planet'])
+        _mi.fortschritt = _m['fortschritt']
+        mining_aktiv.append(_mi)
 for x, y in GAMESTATE.items():
   logger.debug(f'{x}: {y}')
 
@@ -145,6 +172,10 @@ def dump_gamestate():
   GAMESTATE['AktiveMissionen'] = [
       {'name': m.name, 'fortschritt': m.fortschritt}
       for m in missionen_aktiv
+  ]
+  GAMESTATE['AktivesMining'] = [
+      {'planet': m.planet, 'fortschritt': m.fortschritt}
+      for m in mining_aktiv
   ]
   with open(config.SAVEFILE, "w") as outfile:
     json.dump(GAMESTATE, outfile, indent=2)
@@ -874,6 +905,8 @@ lTab_ErdeJobs = erstelle_erde_jobs_tab()
 
 
 def aktualisiere_missionen_anzeige():
+  if not GAMESTATE['Planeten']['Mond']['entdeckt']:
+    return
   active_by_name = {m.name: m for m in missionen_aktiv}
   try:
     for i, name in enumerate(MISSION_SLOTS):
@@ -1036,6 +1069,132 @@ def stoppe_mondmission(mission_name: str):
   aktualisiere_missionen_anzeige()
   add2log(f"Mondmission '{mission_name}' abgebrochen - Ressourcen zurückgegeben")
 
+def starte_mining(planet):
+    """Startet eine Mining-Expedition auf dem angegebenen Planeten."""
+    global iCredits
+    exp = MINING_EXPEDITIONEN[planet]
+    astronauten = GAMESTATE['Astronauten'].get(planet, 0)
+    if astronauten < exp['benötigt_astronauten']:
+        add2log(f"Mining {planet}: Nicht genug Astronauten ({astronauten}/{exp['benötigt_astronauten']})")
+        aktualisiere_mining_anzeige()
+        return
+    for key, wert in exp.items():
+        if key.startswith('benötigt_') and key != 'benötigt_astronauten':
+            ressource = key.replace('benötigt_', '').title()
+            if GAMESTATE['Inventar'].get(ressource, 0) < wert:
+                add2log(f"Mining {planet}: Nicht genug {ressource} ({GAMESTATE['Inventar'].get(ressource, 0)}/{wert})")
+                aktualisiere_mining_anzeige()
+                return
+    for key, wert in exp.items():
+        if key.startswith('benötigt_') and key != 'benötigt_astronauten':
+            ressource = key.replace('benötigt_', '').title()
+            GAMESTATE['Inventar'][ressource] -= wert
+    mining_aktiv.append(MiningInstance(planet))
+    add2log(f"Mining-Expedition auf dem {planet} gestartet")
+    aktualisiere_inventar_anzeige()
+    aktualisiere_mining_anzeige()
+
+
+def beende_mining(mining_inst):
+    """Schließt eine Mining-Expedition ab und vergibt Belohnungen."""
+    global iForschungspunkte
+    exp = MINING_EXPEDITIONEN[mining_inst.planet]
+    for ressource, menge in exp['belohnung'].items():
+        if ressource == 'Forschungspunkte':
+            iForschungspunkte += menge
+        else:
+            GAMESTATE['Inventar'][ressource] = GAMESTATE['Inventar'].get(ressource, 0) + menge
+    add2log(f"Mining-Expedition auf dem {mining_inst.planet} abgeschlossen! Ressourcen erhalten.")
+    aktualisiere_inventar_anzeige()
+    dump_gamestate()
+
+
+def stoppe_mining(slot_index):
+    """Bricht eine Mining-Expedition ab und erstattet die Kosten."""
+    if slot_index >= len(mining_aktiv):
+        return
+    mining_inst = mining_aktiv[slot_index]
+    exp = MINING_EXPEDITIONEN[mining_inst.planet]
+    for key, wert in exp.items():
+        if key.startswith('benötigt_') and key != 'benötigt_astronauten':
+            ressource = key.replace('benötigt_', '').title()
+            GAMESTATE['Inventar'][ressource] = GAMESTATE['Inventar'].get(ressource, 0) + wert
+    mining_aktiv.pop(slot_index)
+    add2log(f"Mining-Expedition auf dem {mining_inst.planet} abgebrochen - Ressourcen zurückgegeben")
+    aktualisiere_inventar_anzeige()
+    aktualisiere_mining_anzeige()
+
+
+def aktualisiere_mining_anzeige():
+    """Aktualisiert die Fortschrittsanzeige aller aktiven Mining-Expeditionen."""
+    if not GAMESTATE['Planeten']['Mond']['entdeckt']:
+        return
+    try:
+        for i in range(MINING_SLOTS):
+            if i < len(mining_aktiv):
+                mi = mining_aktiv[i]
+                pct = int(mi.fortschritt / mi.max_fortschritt * 100) if mi.max_fortschritt > 0 else 0
+                label = f"{mi.planet}: {mi.fortschritt}/{mi.max_fortschritt} Zyklen"
+                window[f'mining_slot_{i}_text'].update(value=label, visible=True)
+                window[f'mining_slot_{i}_bar'].update(current_count=pct, visible=True)
+                window[f'mining_slot_{i}_stop'].update(visible=True)
+            else:
+                window[f'mining_slot_{i}_text'].update(visible=False)
+                window[f'mining_slot_{i}_bar'].update(visible=False)
+                window[f'mining_slot_{i}_stop'].update(visible=False)
+    except (KeyError, NameError):
+        pass
+
+
+def erstelle_mining_tab():
+    """Erstellt das Tab für Mining-Expeditionen."""
+    mond_exp = MINING_EXPEDITIONEN['Mond']
+    mars_exp = MINING_EXPEDITIONEN['Mars']
+
+    mond_belohnung = ', '.join(f"{r} +{m}" for r, m in mond_exp['belohnung'].items())
+    mars_belohnung = ', '.join(f"{r} +{m}" for r, m in mars_exp['belohnung'].items())
+
+    mars_sichtbar = GAMESTATE['Planeten']['Mars']['entdeckt']
+
+    linke_spalte = [
+        [sg.Text('Mond-Expedition', font=('Arial', 11, 'bold'))],
+        [sg.Text(mond_exp['beschreibung'], size=(35, 2))],
+        [sg.Text(f"Astronauten auf Mond nötig: {mond_exp['benötigt_astronauten']}")],
+        [sg.Text(f"Kosten: 1 Werkzeug")],
+        [sg.Text(f"Belohnung: {mond_belohnung}")],
+        [sg.Button('Expedition starten', key='mining_starte_Mond')],
+        [sg.HorizontalSeparator()],
+        [sg.Text('Mars-Expedition', font=('Arial', 11, 'bold'), visible=mars_sichtbar, key='mining_mars_title')],
+        [sg.Text(mars_exp['beschreibung'], size=(35, 2), visible=mars_sichtbar, key='mining_mars_desc')],
+        [sg.Text(f"Astronauten auf Mars nötig: {mars_exp['benötigt_astronauten']}", visible=mars_sichtbar, key='mining_mars_req')],
+        [sg.Text(f"Kosten: 1 Werkzeug, 1 Baumaterial", visible=mars_sichtbar, key='mining_mars_kosten')],
+        [sg.Text(f"Belohnung: {mars_belohnung}", visible=mars_sichtbar, key='mining_mars_belohnung')],
+        [sg.Button('Expedition starten', key='mining_starte_Mars', visible=mars_sichtbar)],
+    ]
+
+    rechte_spalte = [
+        [sg.Text('Laufende Expeditionen:', font=('Arial', 10, 'bold'))],
+        *[
+            [
+                sg.Text('', key=f'mining_slot_{i}_text', size=(35, 1), visible=False),
+                sg.ProgressBar(100, orientation='h', size=(12, 15), key=f'mining_slot_{i}_bar', visible=False),
+                sg.Button('■', key=f'mining_slot_{i}_stop', visible=False, tooltip='Expedition abbrechen'),
+            ]
+            for i in range(MINING_SLOTS)
+        ],
+    ]
+
+    return [
+        [sg.Text('Mining — Ressourcen-Expeditionen', font=('Arial', 12, 'bold'))],
+        [sg.HorizontalSeparator()],
+        [
+            sg.Column(linke_spalte, vertical_alignment='top'),
+            sg.VerticalSeparator(),
+            sg.Column(rechte_spalte, vertical_alignment='top'),
+        ],
+    ]
+
+
 # Neue Tab für Mondmissionen
 def erstelle_mondmission_tab():
   logger.debug('erstelle_mondmission_tab()')
@@ -1080,6 +1239,7 @@ def erstelle_mondmission_tab():
 
 # Fügen Sie das neue Tab zur LAYOUT-Definition hinzu:
 lTab_Mondmissionen = erstelle_mondmission_tab()
+lTab_Mining = erstelle_mining_tab()
 
 # NEW ENDE
 
@@ -1264,6 +1424,7 @@ tabs = [
 if GAMESTATE['Planeten']['Mond']['entdeckt']:
   tabs.append([sg.Tab('Reisen', lTab_Reisen, key='tab_Reisen')])
   tabs.append([sg.Tab('Mondmissionen', lTab_Mondmissionen, key='tab_Mondmissionen')])
+  tabs.append([sg.Tab('Mining', lTab_Mining, key='tab_Mining')])
 
 LAYOUT = [
   [sg.Menu(menu_def)],
@@ -1392,6 +1553,15 @@ while True:
           beende_mondmission(mission.name)
           missionen_aktiv.remove(mission)
     aktualisiere_missionen_anzeige()
+
+    # Mining expeditions processing
+    for mi in mining_aktiv[:]:
+        if mi.aktiv:
+            abgeschlossen = mi.tick()
+            if abgeschlossen:
+                beende_mining(mi)
+                mining_aktiv.remove(mi)
+    aktualisiere_mining_anzeige()
 
     # Earth Jobs processing
     for job in erde_jobs_aktiv[:]:
@@ -1617,6 +1787,18 @@ while True:
     for i, name in enumerate(MISSION_SLOTS):
       if event == f'slot_{i}_stop':
         stoppe_mondmission(name)
+        break
+
+  elif event == 'mining_starte_Mond':
+    starte_mining('Mond')
+
+  elif event == 'mining_starte_Mars':
+    starte_mining('Mars')
+
+  elif any(event == f'mining_slot_{i}_stop' for i in range(MINING_SLOTS)):
+    for i in range(MINING_SLOTS):
+      if event == f'mining_slot_{i}_stop':
+        stoppe_mining(i)
         break
 
   if event != '__TIMEOUT__':
