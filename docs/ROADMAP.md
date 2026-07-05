@@ -21,15 +21,16 @@ This document contains the feature roadmap and TODO items for the Spacegame proj
 ---
 
 ### 2. Planet Travel (Reisen zwischen Planeten)
-**Status**: Partially implemented
+**Status**: Working
 
 **Current State**:
-- `Reise` class exists with methods like `starte_reise()`
-- Basic travel logic implemented
+- `Reise` class with full start/tick/arrival cycle
+- Progress indicators in the Reisen tab and HQ overview
+- Live travel info (distance, capacity, availability) when selecting options
+- Active travels are saved and restored
+- Planets are discovered via probe (Raumsonde) launched from HQ
 
 **TODO**:
-- Add progress indicators in UI for ongoing/completed travels
-- Implement tick logic for travel and automatic completion handling
 - Add random events during travel (breakdowns, discoveries)
 - Implement fuel consumption and life support resource usage
 
@@ -65,14 +66,14 @@ This document contains the feature roadmap and TODO items for the Spacegame proj
 ---
 
 ### 5. Moon Missions (Mondmissionen)
-**Status**: Partially implemented
+**Status**: Working
 
 **Current State**:
-- Basic structure exists
 - Mission start/cancel/completion is mapped
+- Missions run in the background, in parallel to other actions
+- Completed missions are persisted in the savegame
 
 **TODO**:
-- Add mission progress in background (parallel to other actions)
 - Make rewards/dependencies more flexible (chain missions, random modifiers)
 - Create new mission types (time requirements, rescue missions)
 
@@ -156,6 +157,18 @@ This document contains the feature roadmap and TODO items for the Spacegame proj
 
 ---
 
+## Completed Core Loop
+
+The game is playable start to finish:
+1. Earth jobs generate research points and raw materials
+2. Research unlocks workshop recipes (Eisenbarren → ... → Raumsonde → Mondlander → Rakete → Weltraumstation)
+3. A built Raumsonde can be launched from HQ; it discovers the Moon, then Mars
+4. Discovery unlocks the Planeten, Reisen, Mondmissionen and Mining tabs (no restart needed)
+5. Travels move ships, astronauts and cargo between planets
+6. Moon missions and mining expeditions provide credits, research points and rare materials
+7. The Shop sells materials and (researched) spaceships for credits
+8. Building the Weltraumstation wins the game
+
 ## Summary
 
-The game is solidly pre-structured, but essential core features (order queues for building/research/missions; complete travel cycle; event systems; mature UI operation; tutorials) are still unfinished or error-prone. Further development should start at these points, focusing on modularity, error handling, user guidance and the possibility of subsequent expansion (new research, materials, mission types, etc.).
+The core loop is complete and winnable. Remaining work is depth and polish: random events, fuel consumption, multiple save slots, a tutorial and astronaut management.
