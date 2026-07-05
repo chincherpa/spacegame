@@ -1,9 +1,3 @@
-
-print('#'*50)
-print('#'*50)
-print('#'*50)
-print('#'*50)
-print('#'*50)
 GAMESTATE = {
   'Ticks': 0,
   'Credits': 10,
@@ -228,4 +222,8 @@ GAMESTATE = {
   },
 
   'AktivesMining': [],
+  'AktiveMissionen': [],
+  'AktiveReisen': [],
+  'AktiveRaumsonde': None,
+  'Spiel_gewonnen': False,
 }
