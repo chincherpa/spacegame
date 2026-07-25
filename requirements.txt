@@ -1,0 +1,9 @@
+# Laufzeit
+FreeSimpleGUI>=5.2
+
+# Tests
+pytest>=8.0
+
+# Hinweis: FreeSimpleGUI benötigt tkinter. Das ist bei den meisten
+# Python-Installationen dabei; unter Debian/Ubuntu ggf. nachinstallieren:
+#   sudo apt-get install python3-tk

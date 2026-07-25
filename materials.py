@@ -19,9 +19,9 @@ MATERIALS = {
     'Beschreibung': 'Wertvolles Metall',
     'benötigt für': []
     },
-  'Eisenerz': {
-    'Beschreibung': 'Eisenerz',
-    'benötigt für': ['Eisenbarren']
+  'Treibstoff': {
+    'Beschreibung': 'Treibstoff für Raumschiffe, wird bei jeder Reise verbraucht.',
+    'benötigt für': []
     },
   'Werkzeug': {
     'Beschreibung': 'Für komplexe Konstruktionen',

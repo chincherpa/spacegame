@@ -14,6 +14,7 @@ MINING_EXPEDITIONEN = {
         'benötigt_astronauten': 2,
         'benötigt_werkzeug': 1,
         'benötigt_baumaterial': 1,
-        'belohnung': {'Roheisen': 5, 'Gold': 1, 'Eisenerz': 3},
+        # 'Eisenerz' war ein Duplikat von 'Roheisen' ohne Inventarplatz.
+        'belohnung': {'Roheisen': 8, 'Gold': 1, 'Seltene_Mineralien': 1},
     },
 }

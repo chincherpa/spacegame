@@ -67,6 +67,7 @@ MATERIAL_VALUES = {
     'Roheisen': 20,
     'Staub': 5,
     'Wasser': 10,
+    'Treibstoff': 30,
     'Gold': 500,
     'Raumsonde': 1000,
     'Mondlander': 5000,
@@ -74,7 +75,18 @@ MATERIAL_VALUES = {
     'Weltraumstation': 50000,
     'Mondgestein': 100,
     'Seltene_Mineralien': 300,
+    'Mondstation_Modul': 400,
+    'Mondbasen Bauplan': 800,
+    'Lebenserhaltung_Upgrade': 350,
+    'Kommunikations_Upgrade': 350,
+    'Astronaut_Erfahrung': 50,
 }
+
+# =============================================================================
+# TRAVEL
+# =============================================================================
+
+TRAVEL_EVENTS_ENABLED = True  # Zufallsereignisse während Reisen
 
 # =============================================================================
 # FILE PATHS
