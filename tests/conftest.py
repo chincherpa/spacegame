@@ -131,3 +131,41 @@ def gamestate_with_spaceships(fresh_gamestate):
 def temp_savefile(tmp_path):
     """Provides a temporary path for save file testing."""
     return tmp_path / "test_savefile.json"
+
+
+@pytest.fixture
+def game(monkeypatch):
+    """The real main.py module, with only the GUI and the savefile replaced.
+
+    Everything else is the production code: tests using this fixture exercise
+    the functions the game actually runs, instead of a copy of them.
+
+    Reset per test:
+      * GAMESTATE comes from gamestate.py defaults (no savefile is read)
+      * ACTIONS is snapshotted and restored, because completing a mission sets
+        ACTIONS[name]['erforscht'] on the shared module-level dict
+      * the active job/mission/mining lists are emptied
+      * dump_gamestate() is stubbed so no test writes to disk
+    """
+    monkeypatch.setitem(sys.modules, 'FreeSimpleGUI', MagicMock())
+
+    import saveslots
+    monkeypatch.setattr(saveslots, 'lade_slot', lambda slot=1: None)
+
+    import main
+    from actions import ACTIONS
+
+    original_actions = copy.deepcopy(ACTIONS)
+    monkeypatch.setattr(main, 'dump_gamestate', lambda *a, **kw: None)
+    main.window = MagicMock()
+    main.initialisiere_spielstand()
+    main.erde_jobs_aktiv.clear()
+
+    yield main
+
+    ACTIONS.clear()
+    ACTIONS.update(original_actions)
+    main.erde_jobs_aktiv.clear()
+    main.missionen_aktiv.clear()
+    main.mining_aktiv.clear()
+    main.aktive_reisen.clear()

@@ -23,21 +23,13 @@ from shop import (
     verkaufspreis,
 )
 
-# Configure logging - set to DEBUG for development, INFO for production
-logging.basicConfig(
-    level=logging.WARNING,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%H:%M:%S'
-)
 logger = logging.getLogger(__name__)
 
-sg.theme('Dark Teal 6')
 
 # See docs/ROADMAP.md for feature roadmap and TODO items
 
-# Game timing
-TICK_INTERVAL = 2  # Tick interval in seconds
-letzter_tick = time.time()
+# Game timing; der Takt kommt aus config, damit er an einer Stelle einstellbar ist.
+letzter_tick = 0.0
 
 # Save feedback timer
 iSaveStatusTimer = 0
@@ -124,7 +116,6 @@ class ErdArbeit:
                 self.aktiv = False
                 return True  # Job abgeschlossen
         return False
-
 
 
 class MissionInstance:
@@ -237,31 +228,17 @@ def load_gamestate(slot=1):
   # Alte Spielstände um neue Schlüssel ergänzen
   return merge_defaults(copy.deepcopy(DEFAULT_GAMESTATE), loaded)
 
-GAMESTATE = load_gamestate()
-for _m in GAMESTATE.get('AktiveMissionen', []):
-    if _m['name'] in ACTIONS:
-        _mi = MissionInstance(_m['name'])
-        _mi.fortschritt = _m['fortschritt']
-        missionen_aktiv.append(_mi)
-for _m in GAMESTATE.get('AktivesMining', []):
-    if _m['planet'] in MINING_EXPEDITIONEN:
-        _mi = MiningInstance(_m['planet'])
-        _mi.fortschritt = _m['fortschritt']
-        mining_aktiv.append(_mi)
-_sonde = GAMESTATE.get('AktiveRaumsonde')
-if _sonde:
-    raumsonde_flug = RaumsondenFlug(fortschritt=_sonde.get('fortschritt', 0))
-# Abgeschlossene Mondmissionen aus dem Spielstand in ACTIONS übernehmen
-for _name, _daten in GAMESTATE.get('Mondmissionen', {}).items():
-    if _name in ACTIONS:
-        ACTIONS[_name]['erforscht'] = _daten.get('erforscht', False)
-for x, y in GAMESTATE.items():
-  logger.debug(f'{x}: {y}')
-
-for x, y in SCIENCE.items():
-  logger.debug(f'{x}: {y}')
-
-iForschungspunkte = GAMESTATE['Forschungspunkte']
+# Laufzeit-Zustand. Wird von initialisiere_spielstand() befuellt; auf Modulebene
+# bewusst leer, damit ein Import von main keine Spielstaenden von der Platte liest.
+GAMESTATE = {}
+iTicks = 0
+iCredits = 0
+iForschungspunkte = 0
+lLog = []
+sLog = ''
+sAktuelle_Forschung = None
+sAktuelle_Mondmission = None
+window = None
 
 def dump_gamestate(slot=1):
   """Schreibt den aktuellen Spielstand in einen Speicherslot (Standard: Slot 1)."""
@@ -372,8 +349,8 @@ def forschungsauftrag_hinzufuegen(name):
   aktualisiere_forschungs_queue_anzeige()
 
 def zeige_bauen(sAktuelles_Bauen):
-  logger.debug('zeige_bauen()')
   """Zeigt Informationen zum ausgewählten Bau-Item"""
+  logger.debug('zeige_bauen()')
   if sAktuelles_Bauen in GAMESTATE['Werkstatt']:
     item = GAMESTATE['Werkstatt'][sAktuelles_Bauen]
 
@@ -455,8 +432,8 @@ def bauauftrag_hinzufuegen(item_name):
   aktualisiere_bau_queue_anzeige()  # Neue Funktion, siehe unten
 
 def baue(sAktuelles_Bauen):
-  logger.debug('baue()')
   """Startet den Bau-Prozess"""
+  logger.debug('baue()')
   global bBauen_aktiv, iAktueller_Baufortschritt, iMax_Bauen, iAnzahl_Bauen
 
   # Anzahl aus Spinner lesen
@@ -479,7 +456,9 @@ def baue(sAktuelles_Bauen):
 
   # Bau-Prozess starten (Dauer skaliert mit Anzahl)
   bBauen_aktiv = True
-  iMax_Bauen = int(item['dauer'] / config.TICK) * iAnzahl_Bauen
+  # Mindestens 1 Zyklus pro Item: eine Dauer unterhalb von config.TICK_MULTIPLIER wuerde
+  # sonst auf 0 abrunden und der Bau waere sofort fertig (vgl. erforsche()).
+  iMax_Bauen = max(1, int(item['dauer'] / config.TICK_MULTIPLIER)) * iAnzahl_Bauen
   iAktueller_Baufortschritt = 0
 
   # UI aktualisieren
@@ -496,8 +475,8 @@ def baue(sAktuelles_Bauen):
   add2log(f"Baue {iAnzahl_Bauen}x '{sAktuelles_Bauen}' - Materialien verbraucht")
 
 def beende_bauen(sAktuelles_Bauen):
-  logger.debug('beende_bauen()')
   """Beendet den Bau-Prozess erfolgreich"""
+  logger.debug('beende_bauen()')
   global bBauen_aktiv
 
   # Gebauten Gegenstand zum Inventar/Raumschiffe hinzufügen
@@ -537,16 +516,17 @@ def beende_bauen(sAktuelles_Bauen):
 
 
 def stoppe_bauen():
-  logger.debug('stoppe_bauen()')
   """Stoppt den Bau-Prozess und gibt Materialien zurück"""
+  logger.debug('stoppe_bauen()')
   global bBauen_aktiv
 
   if bBauen_aktiv and sAktuelles_Bauen:
     item = GAMESTATE['Werkstatt'][sAktuelles_Bauen]
 
     # Berechne fertige und noch offene Items anhand des Fortschritts
-    ticks_pro_item = int(item['dauer'] / config.TICK)
-    fertige_items = iAktueller_Baufortschritt // ticks_pro_item if ticks_pro_item > 0 else 0
+    # Gleiche Formel wie in baue(), damit Fortschritt und Rueckerstattung passen.
+    ticks_pro_item = max(1, int(item['dauer'] / config.TICK_MULTIPLIER))
+    fertige_items = iAktueller_Baufortschritt // ticks_pro_item
     fertige_items = min(fertige_items, iAnzahl_Bauen)
     offene_items = iAnzahl_Bauen - fertige_items
 
@@ -586,7 +566,7 @@ def erforsche(sAktuelle_Forschung):
   bForschung_aktiv = True
   # Ganzzahlig und mindestens 1 Zyklus: eine Fliesskomma-Dauer würde beim
   # Vergleich mit dem ganzzahligen Fortschritt nie exakt getroffen.
-  iMax_Forschung = max(1, int(SCIENCE[sAktuelle_Forschung]['dauer'] / config.TICK))
+  iMax_Forschung = max(1, int(SCIENCE[sAktuelle_Forschung]['dauer'] / config.TICK_MULTIPLIER))
   iAktueller_Forschungsfortschritt = 0
   window['progressbar_Forschung'].update(current_count=0, max=iMax_Forschung)
   window['progressbar_Forschung'].update(visible=True)
@@ -619,8 +599,8 @@ def add2log(sString):
 
 # NEW
 def erstelle_inventar_layout():
-  logger.debug('erstelle_inventar_layout()')
   """Erstellt das Layout für die Inventar-Anzeige dynamisch"""
+  logger.debug('erstelle_inventar_layout()')
   inventar_zeilen = []
 
   # Header
@@ -652,13 +632,13 @@ def erstelle_inventar_layout():
   return inventar_zeilen
 
 def get_material_beschreibung(material):
-  logger.debug('get_material_beschreibung()')
   """Gibt eine Beschreibung für jedes Material zurück"""
+  logger.debug('get_material_beschreibung()')
   return MATERIALS.get(material, {'Beschreibung': f'Unbekanntes Material: {material}'}).get('Beschreibung', 'no description found')
 
 def aktualisiere_inventar_anzeige():
-  logger.debug('aktualisiere_inventar_anzeige()')
   """Aktualisiert die Inventar-Anzeige dynamisch"""
+  logger.debug('aktualisiere_inventar_anzeige()')
   for material, anzahl in GAMESTATE['Inventar'].items():
     try:
       window[f'inv_anzahl_{material}'].update(value=str(anzahl))
@@ -668,8 +648,8 @@ def aktualisiere_inventar_anzeige():
       pass
 
 def aktualisiere_raumschiff_anzeige():
-  logger.debug('aktualisiere_raumschiff_anzeige()')
   """Aktualisiert die Raumschiff-Anzeige"""
+  logger.debug('aktualisiere_raumschiff_anzeige()')
   try:
     # Raumschiffe auf der Erde
     mondlander_erde = GAMESTATE['Raumschiffe']['Erde']['Mondlander']['Anzahl']
@@ -701,8 +681,8 @@ def aktualisiere_raumschiff_anzeige():
     logger.debug("Raumschiff-Anzeige konnte nicht aktualisiert werden")
 
 def erstelle_raumschiff_uebersicht():
-  logger.debug('erstelle_raumschiff_uebersicht()')
   """Erstellt eine Übersicht aller Raumschiffe (Mond/Mars werden bei Entdeckung eingeblendet)"""
+  logger.debug('erstelle_raumschiff_uebersicht()')
   mond = GAMESTATE['Planeten']['Mond']['entdeckt']
   mars = GAMESTATE['Planeten']['Mars']['entdeckt']
   return [
@@ -735,8 +715,8 @@ def berechne_inventar_statistiken():
   return gesamtwert, anzahl_typen
 
 def aktualisiere_inventar_statistiken():
-  logger.debug('aktualisiere_inventar_statistiken()')
   """Aktualisiert die Inventar-Statistiken"""
+  logger.debug('aktualisiere_inventar_statistiken()')
   gesamtwert, anzahl_typen = berechne_inventar_statistiken()
 
   try:
@@ -775,8 +755,8 @@ class Reise:
     return aktuelle_tick >= self.end_tick
 
 def get_verfuegbare_raumschiffe(planet):
-  logger.debug('get_verfuegbare_raumschiffe()')
   """Gibt verfügbare Raumschiffe auf einem Planeten zurück"""
+  logger.debug('get_verfuegbare_raumschiffe()')
   verfuegbare = {}
   for raumschiff_typ in ['Mondlander', 'Rakete']:
     anzahl = GAMESTATE['Raumschiffe'][planet][raumschiff_typ]['Anzahl']
@@ -785,8 +765,8 @@ def get_verfuegbare_raumschiffe(planet):
   return verfuegbare
 
 def get_raumschiff_kapazitaet(raumschiff_typ):
-  logger.debug('get_raumschiff_kapazitaet()')
   """Gibt die Kapazitäten eines Raumschiffs zurück"""
+  logger.debug('get_raumschiff_kapazitaet()')
   eintrag = SCIENCE.get(raumschiff_typ, {})
   astronauten = eintrag.get('Sitzplätze', 0)
   fracht = eintrag.get('Frachtplätze', 0)
@@ -802,8 +782,8 @@ def get_reise_kosten(raumschiff_typ, von_planet, zu_planet, astronauten):
 
 
 def kann_reisen(von_planet, zu_planet, raumschiff_typ):
-  logger.debug('kann_reisen()')
   """Prüft ob eine Reise möglich ist"""
+  logger.debug('kann_reisen()')
   # Prüfen ob Startplanet bekannt ist (Erde ist immer bekannt)
   if von_planet != 'Erde' and not GAMESTATE['Planeten'][von_planet].get('entdeckt', False):
     return False, "Startplanet nicht entdeckt"
@@ -823,8 +803,8 @@ def kann_reisen(von_planet, zu_planet, raumschiff_typ):
   return True, "Reise möglich"
 
 def starte_reise(raumschiff_typ, von_planet, zu_planet, astronauten_anzahl, fracht_dict):
-  logger.debug('starte_reise()')
   """Startet eine neue Reise"""
+  logger.debug('starte_reise()')
   global aktive_reisen
   kann_reisen_result, grund = kann_reisen(von_planet, zu_planet, raumschiff_typ)
   if not kann_reisen_result:
@@ -942,8 +922,8 @@ def beende_reise(reise):
   aktualisiere_alle_anzeigen()
 
 def verwalte_aktive_reisen():
-  logger.debug('verwalte_aktive_reisen()')
   """Verwaltet alle aktiven Reisen"""
+  logger.debug('verwalte_aktive_reisen()')
   global aktive_reisen
   for reise in aktive_reisen[:]:  # Copy der Liste für sichere Iteration
     if not reise.abgeschlossen and reise.ist_abgeschlossen(iTicks):
@@ -964,8 +944,8 @@ def stelle_reise_her(daten):
 
 
 def aktualisiere_reise_anzeige():
-  logger.debug('aktualisiere_reise_anzeige()')
   """Aktualisiert die Anzeige der aktiven Reisen (Reisen-Tab und HQ-Übersicht)"""
+  logger.debug('aktualisiere_reise_anzeige()')
   reise_text = ""
   for reise in aktive_reisen:
     if not reise.abgeschlossen:
@@ -981,8 +961,8 @@ def aktualisiere_reise_anzeige():
       pass  # Element existiert noch nicht
 
 def aktualisiere_alle_anzeigen():
-  logger.debug('aktualisiere_alle_anzeigen()')
   """Aktualisiert alle UI-Elemente"""
+  logger.debug('aktualisiere_alle_anzeigen()')
   aktualisiere_inventar_anzeige()
   aktualisiere_raumschiff_anzeige()
   aktualisiere_inventar_statistiken()
@@ -1134,8 +1114,8 @@ def aktualisiere_tab_sichtbarkeit():
     pass
 
 def aktualisiere_planeten_anzeige():
-  logger.debug('aktualisiere_planeten_anzeige()')
   """Aktualisiert die Astronauten-Anzeige auf den Planeten"""
+  logger.debug('aktualisiere_planeten_anzeige()')
   try:
     # HQ Tab
     window['astronauten_erde'].update(value=f"Astronauten auf der Erde: {GAMESTATE['Astronauten']['Erde']}")
@@ -1151,8 +1131,8 @@ def aktualisiere_planeten_anzeige():
     pass
 
 def erstelle_reise_interface():
-  logger.debug('erstelle_reise_interface()')
   """Erstellt das Interface für Reisen"""
+  logger.debug('erstelle_reise_interface()')
 
   # Radiobuttons für alle Planeten anlegen; unentdeckte werden erst später eingeblendet
   def planet_sichtbar(planet):
@@ -1234,9 +1214,6 @@ def aktualisiere_fracht_spinner():
       window[f'fracht_{mat}'].update(values=[i for i in range(0, bestand + 1)], value=min(aktuell, bestand))
     except KeyError:
       pass
-
-# Neues Tab für Reisen
-lTab_Reisen = erstelle_reise_interface()
 
 
 # ============ EARTH JOBS SYSTEM ============
@@ -1339,11 +1316,6 @@ def erstelle_erde_jobs_tab():
     ]
 
 
-# Tab für Erd-Jobs erstellen
-lTab_ErdeJobs = erstelle_erde_jobs_tab()
-
-
-
 def aktualisiere_missionen_anzeige():
   if not GAMESTATE['Planeten']['Mond']['entdeckt']:
     return
@@ -1365,8 +1337,8 @@ def aktualisiere_missionen_anzeige():
     pass
 
 def zeige_mondmission(sAktuelle_Mission):
-  logger.debug('zeige_mondmission()')
   """Zeigt Informationen zur ausgewählten Mondmission"""
+  logger.debug('zeige_mondmission()')
   window['do_mondmission'].update(visible=False)
   window['mondmission_completed'].update(visible=False)
 
@@ -1513,8 +1485,8 @@ def beende_mondmission(missionsname):
   dump_gamestate()
 
 def stoppe_mondmission(mission_name: str):
-  logger.debug(f'stoppe_mondmission({mission_name})')
   """Stoppt eine Mondmission und gibt Ressourcen zurück"""
+  logger.debug(f'stoppe_mondmission({mission_name})')
   global iCredits
   mission_inst = next((m for m in missionen_aktiv if m.name == mission_name), None)
   if not mission_inst:
@@ -1660,8 +1632,8 @@ def erstelle_mining_tab():
 
 # Neue Tab für Mondmissionen
 def erstelle_mondmission_tab():
-  logger.debug('erstelle_mondmission_tab()')
   """Erstellt das Tab für Mondmissionen"""
+  logger.debug('erstelle_mondmission_tab()')
   return [
     [sg.Text('Mondmissionen', font=('Arial', 12, 'bold'))],
     [sg.Text('Nur verfügbar wenn Astronauten auf dem Mond sind', font=('Arial', 10, 'italic'))],
@@ -1700,123 +1672,13 @@ def erstelle_mondmission_tab():
     ],
   ]
 
-# Fügen Sie das neue Tab zur LAYOUT-Definition hinzu:
-lTab_Mondmissionen = erstelle_mondmission_tab()
-lTab_Mining = erstelle_mining_tab()
 
 # NEW ENDE
 
-# Menü-Einträge tragen ihren Key hinter '::'; das Event enthält den kompletten
-# String, das angezeigte Label nur den Teil davor.
-_SLOTS = range(1, saveslots.SLOT_ANZAHL + 1)
-menu_def = [
-  ['&File', [
-    '&Speichern', [f'Slot {s}::save_slot_{s}' for s in _SLOTS],
-    '&Laden', [f'Slot {s}::load_slot_{s}' for s in _SLOTS],
-    'Spielstände anzeigen::slot_uebersicht',
-    '---',
-    'Exit::exit',
-  ]],
-  ['&Hilfe', [
-    'Kurzanleitung::hilfe_allgemein',
-    'Hilfe zum aktuellen Tab::hilfe_tab',
-    'Erfolge und Statistik::erfolge_anzeigen',
-  ]],
-]
 
-lTab_HQ = [
-  [sg.Text('Headquarter', font=('Arial', 12, 'bold'))],
-  [sg.HorizontalSeparator()],
-
-  # Astronauten-Übersicht
-  [sg.Text('Astronauten-Verteilung:', font=('Arial', 10, 'bold'))],
-  [sg.Text(f"Astronauten auf der Erde: {GAMESTATE['Astronauten']['Erde']}", key='astronauten_erde')],
-  [sg.Text(f"Astronauten auf dem Mond: {GAMESTATE['Astronauten']['Mond']}", key='astronauten_mond', visible=GAMESTATE['Planeten']['Mond']['entdeckt'])],
-  [sg.Text(f"Astronauten auf dem Mars: {GAMESTATE['Astronauten']['Mars']}", key='astronauten_mars', visible=GAMESTATE['Planeten']['Mars']['entdeckt'])],
-
-  [sg.HorizontalSeparator()],
-
-  # Schnell-Aktionen
-  [sg.Text('Schnell-Aktionen:', font=('Arial', 10, 'bold'))],
-  [sg.Text('Sende eine Raumsonde in den Weltraum, um etwas zu entdecken', key='hq_sonde_hinweis',
-           visible=not (GAMESTATE['Planeten']['Mond']['entdeckt'] and GAMESTATE['Planeten']['Mars']['entdeckt']))],
-  [sg.Button('Starte Raumsonde', key='starte_raumsonde', visible=GAMESTATE['Inventar'].get('Raumsonde', 0) > 0)],
-  [sg.Text('', key='raumsonde_status', size=(60, 1), visible=False)],
-
-  [sg.HorizontalSeparator()],
-  # Aktive Reisen (Übersicht)
-  [sg.Text('Aktive Reisen:', font=('Arial', 10, 'bold'))],
-  [sg.Text('', key='aktive_reisen_uebersicht', size=(60, 3))],
-
-  [sg.HorizontalSeparator()],
-  # Tutorial: nächstes Ziel
-  [sg.Text('Nächstes Ziel:', font=('Arial', 10, 'bold'))],
-  [sg.Text('', key='naechstes_ziel', size=(60, 4), text_color='light green')],
-  [sg.Button('Kurzanleitung', key='zeige_kurzanleitung'),
-   sg.Button('Erfolge und Statistik', key='zeige_erfolge')],
-]
-
-lTab_Forschung = [
-  [
-    sg.Column([
-      [
-        sg.Button(button_text=name, key=f'Erforsche {name}', visible=name == 'Eisenbarren' or GAMESTATE['Forschung'][data['erforschbar nach']]['erforscht'] or
-                  (data.get('erforschbar nach', '') and GAMESTATE['Forschung'].get(data.get('erforschbar nach', ''), {}).get('erforscht', False))),
-        sg.Image('images/checkmark.png', visible=GAMESTATE['Forschung'][name]['erforscht'], key=f'img_{name}')
-      ]
-      for name, data in SCIENCE.items()
-    ]),
-    sg.VerticalSeparator(),
-    sg.Column([
-      [sg.Text('', key='desc_research', visible=False, size=(30, 6))],
-      [sg.Text('', key='desc_dauer', visible=False)],
-      [sg.Text('', key='desc_costs', visible=False)],
-      [sg.Text('', key='desc_voraussetzung', visible=False)],
-      [sg.Text('', key='comment', visible=False)],
-      [
-        sg.Button('Erforschen', key='do_research', visible=False),
-        sg.Text('erforscht', key='already_researched', visible=False)
-      ],
-      [
-        sg.ProgressBar(0, orientation='h', size=(20, 20), key='progressbar_Forschung', visible=False),
-        sg.Button('Erforschen stoppen', key='stop_research', visible=False),
-      ],
-      [sg.Button('In Queue stellen', key='queue_research', visible=False)],
-      [sg.Text('Warteschlange:', font=('Arial', 10, 'bold'))],
-      [sg.Multiline('Keine Aufträge in der Warteschlange.', key='forschungs_queue_anzeige', size=(30, 3), disabled=True)],
-      [sg.Button('Storniere Forschungsauftrag', key='storniere_forschungsauftrag')],
-    ]),
-  ],
-]
-
-lTab_Werkstatt = [
-  [
-    sg.Column([
-      [
-        sg.Button(button_text=name, key=f'baue_{name}', visible=GAMESTATE['Forschung'][name]['erforscht']),
-      ]
-      for name in SCIENCE
-
-    ]),
-    sg.VerticalSeparator(),
-    sg.Column([
-      [sg.Text('', key='desc_bauen', size=(40, 4))],
-      [sg.Text('', key='desc_materialien', size=(40, 12), visible=False)],
-      [sg.Text('Anzahl:', key='label_anzahl_bauen', visible=False), sg.Spin(values=[1], initial_value=1, key='anzahl_bauen', size=(5, 1), visible=False), sg.Button('Bauen', key='do_bauen', visible=False)],
-      [sg.Text('', key='bauen_unmöglich', visible=False, text_color='red')],
-      [sg.ProgressBar(0, orientation='h', size=(30, 20), key='progressbar_Bauen', visible=False)],
-      [sg.Button('Bauen stoppen', key='stop_bauen', visible=False)],
-      [sg.Text('Warteschlange:', font=('Arial',10,'bold'))],
-      [sg.Multiline('', key='bau_queue_anzeige', size=(40,3), disabled=True)],
-      [sg.Button('Nächsten Bauauftrag stornieren', key='storniere_bauauftrag')]
-    ]),
-  ],
-]
-
-# Ersetze das alte lTab_Inventory durch:
 def erstelle_inventar_tab():
-  logger.debug('erstelle_inventar_tab()')
   """Erstellt das komplette Inventar-Tab dynamisch"""
+  logger.debug('erstelle_inventar_tab()')
   inventar_layout = erstelle_inventar_layout()
   raumschiff_layout = erstelle_raumschiff_uebersicht()
 
@@ -1842,39 +1704,6 @@ def erstelle_inventar_tab():
     [sg.Text('Anzahl verschiedener Materialien:', size=(20, 1)), sg.Text('', key='inventar_anzahl_typen')],
   ]
 
-# Aktualisiere die LAYOUT-Definition:
-lTab_Inventory = erstelle_inventar_tab()
-
-lTab_Erde = [
-  [sg.Text('Erde')],
-  [sg.Text(f"Astronauten auf der Erde {GAMESTATE['Astronauten']['Erde']}", key='planet_erde_astronauten')],
-]
-
-lTab_Mond = [
-  [sg.Text('Mond')],
-  [sg.Text(f"Astronauten auf dem Mond {GAMESTATE['Astronauten']['Mond']}", key='planet_mond_astronauten')],
-]
-
-lTab_Mars = [
-  [sg.Text('Mars')],
-  [sg.Text(f"Astronauten auf dem Mars {GAMESTATE['Astronauten']['Mars']}", key='planet_mars_astronauten')],
-]
-
-tabs_planets = [
-    [sg.Tab('Erde', lTab_Erde, key='tab_erde')],
-    [sg.Tab('Mond', lTab_Mond, key='tab_mond', visible=GAMESTATE['Planeten']['Mond']['entdeckt'])],
-    [sg.Tab('Mars', lTab_Mars, key='tab_mars', visible=GAMESTATE['Planeten']['Mars']['entdeckt'])],
-]
-
-lTab_Planets = [
-  [
-    sg.TabGroup(
-      tabs_planets,
-      expand_x=True,
-      expand_y=True,
-    )
-  ]
-]
 
 # ============ SHOP SYSTEM ============
 
@@ -2017,43 +1846,6 @@ def verkaufe_material():
   if sAktueller_Shop_Artikel:
     zeige_shop_artikel(sAktueller_Shop_Artikel)
 
-_verkaufbar_start = verkaufbare_materialien(GAMESTATE['Inventar'])
-
-lTab_Shop = [
-  [sg.Text('Shop', font=('Arial', 12, 'bold'))],
-  [sg.Text('Kaufe Materialien und Raumschiffe - oder mache Überschüsse zu Credits.')],
-  [sg.HorizontalSeparator()],
-  [sg.Text('Kaufen', font=('Arial', 10, 'bold'))],
-  [
-    sg.Column([
-      [sg.Button(button_text=name, key=f'shop_{name}', size=(15, 1))]
-      for name in SHOP_ITEMS
-    ], vertical_alignment='top'),
-    sg.VerticalSeparator(),
-    sg.Column([
-      [sg.Text('', key='shop_beschreibung', visible=False, size=(45, 5))],
-      [sg.Text('', key='shop_preis', visible=False)],
-      [
-        sg.Text('Anzahl:', key='shop_label_anzahl', visible=False),
-        sg.Spin([i for i in range(1, 101)], initial_value=1, key='shop_anzahl', size=(5, 1), visible=False),
-        sg.Button('Kaufen', key='do_kaufen', visible=False),
-      ],
-      [sg.Text('', key='shop_kommentar', visible=False, text_color='red')],
-    ], vertical_alignment='top'),
-  ],
-  [sg.HorizontalSeparator()],
-  [sg.Text('Verkaufen', font=('Arial', 10, 'bold'))],
-  [
-    sg.Text('Material:'),
-    sg.Combo(_verkaufbar_start, default_value=(_verkaufbar_start[0] if _verkaufbar_start else ''),
-             key='verkauf_material', size=(22, 1), readonly=True, enable_events=True),
-    sg.Text('Menge:'),
-    sg.Spin([i for i in range(1, 1001)], initial_value=1, key='verkauf_menge',
-            size=(5, 1), enable_events=True),
-    sg.Button('Verkaufen', key='do_verkaufen'),
-  ],
-  [sg.Text('', key='verkauf_info', size=(60, 2))],
-]
 
 # Bild je Tab; Tab-Keys und die alten Klartext-Events zeigen auf dieselben Dateien.
 TAB_BILDER = {
@@ -2171,403 +1963,661 @@ def lade_spielstand(slot):
   return True
 
 
-lLog = GAMESTATE['Log']
-sLog = '\n'.join(lLog[::-1])
-logger.debug(f'Game log: {sLog}')
+def initialisiere_spielstand(slot=1):
+  """Laedt einen Spielstand und stellt den Laufzeit-Zustand daraus wieder her."""
+  global GAMESTATE, iTicks, iCredits, iForschungspunkte
+  global lLog, sLog, sAktuelle_Forschung, raumsonde_flug
+  global bForschung_aktiv, bBauen_aktiv, sAktuelles_Bauen
 
-_mond = GAMESTATE['Planeten']['Mond']['entdeckt']
-_werkstatt_freigeschaltet = any(v['erforscht'] for v in GAMESTATE['Forschung'].values())
+  GAMESTATE = load_gamestate(slot)
+  # Laufzeitlisten leeren, damit ein erneutes Laden nicht doppelt anhaengt.
+  missionen_aktiv.clear()
+  mining_aktiv.clear()
+  aktive_reisen.clear()
+  erde_jobs_aktiv.clear()
+  raumsonde_flug = None
+  # Nicht gespeicherte Vorgaenge verfallen - wie in lade_spielstand().
+  bForschung_aktiv = False
+  bBauen_aktiv = False
+  sAktuelles_Bauen = None
+  forschungs_queue.clear()
+  bau_queue.clear()
+  for _m in GAMESTATE.get('AktiveMissionen', []):
+      if _m['name'] in ACTIONS:
+          _mi = MissionInstance(_m['name'])
+          _mi.fortschritt = _m['fortschritt']
+          missionen_aktiv.append(_mi)
+  for _m in GAMESTATE.get('AktivesMining', []):
+      if _m['planet'] in MINING_EXPEDITIONEN:
+          _mi = MiningInstance(_m['planet'])
+          _mi.fortschritt = _m['fortschritt']
+          mining_aktiv.append(_mi)
+  _sonde = GAMESTATE.get('AktiveRaumsonde')
+  if _sonde:
+      raumsonde_flug = RaumsondenFlug(fortschritt=_sonde.get('fortschritt', 0))
+  # Abgeschlossene Mondmissionen aus dem Spielstand in ACTIONS übernehmen
+  for _name, _daten in GAMESTATE.get('Mondmissionen', {}).items():
+      if _name in ACTIONS:
+          ACTIONS[_name]['erforscht'] = _daten.get('erforscht', False)
 
-tabs = [
-  [sg.Tab('HQ', lTab_HQ, key='tab_HQ')],
-  [sg.Tab('Arbeit', lTab_ErdeJobs, key='tab_Arbeit')],
-  [sg.Tab('Forschung', lTab_Forschung, key='tab_Forschung')],
-  [sg.Tab('Werkstatt', lTab_Werkstatt, key='tab_Werkstatt', visible=_werkstatt_freigeschaltet)],
-  [sg.Tab('Inventar', lTab_Inventory, key='tab_Inventar')],
-  [sg.Tab('Shop', lTab_Shop, key='tab_Shop')],
-  [sg.Tab('Planeten', lTab_Planets, key='tab_Planeten', visible=_mond)],
-  [sg.Tab('Reisen', lTab_Reisen, key='tab_Reisen', visible=_mond)],
-  [sg.Tab('Mondmissionen', lTab_Mondmissionen, key='tab_Mondmissionen', visible=_mond)],
-  [sg.Tab('Mining', lTab_Mining, key='tab_Mining', visible=_mond)],
-]
+  iTicks = GAMESTATE['Ticks']
+  iCredits = GAMESTATE['Credits']
+  iForschungspunkte = GAMESTATE['Forschungspunkte']
+  lLog = GAMESTATE['Log']
+  sLog = '\n'.join(lLog[::-1])
+  sAktuelle_Forschung = list(SCIENCE.keys())[0]
 
-LAYOUT = [
-  [sg.Menu(menu_def)],
-  [
-    [
-      sg.Text(text='Cycle:', key='tCycles'),
-      sg.Text(text='Credits:', key='tCredits'),
-      sg.Text(text='Forschungspunkte:', key='tForschungspunkte'),
-      sg.Text('', key='save_status', text_color='green', visible=False),
-    ],
-    sg.Column([
-      [sg.TabGroup(
-      tabs,
-      expand_x=True, expand_y=True, change_submits=True, enable_events=True, key='TabGroup_Main', tab_location='top')]
-    ]),
-    sg.Column([[sg.Image('images/TAB_HQ.png', key='img_Spalte3')]])
-  ],
+  # Gespeicherte Reisen wiederherstellen (benoetigt iTicks).
+  for _r in GAMESTATE.get('AktiveReisen', []):
+    stelle_reise_her(_r)
 
-  [
+
+def erstelle_layout():
+  """Baut das komplette Fensterlayout aus dem aktuellen Spielstand."""
+  # Neues Tab für Reisen
+  lTab_Reisen = erstelle_reise_interface()
+
+  # Tab für Erd-Jobs erstellen
+  lTab_ErdeJobs = erstelle_erde_jobs_tab()
+
+  # Fügen Sie das neue Tab zur LAYOUT-Definition hinzu:
+  lTab_Mondmissionen = erstelle_mondmission_tab()
+  lTab_Mining = erstelle_mining_tab()
+
+  # Menü-Einträge tragen ihren Key hinter '::'; das Event enthält den kompletten
+  # String, das angezeigte Label nur den Teil davor.
+  _SLOTS = range(1, saveslots.SLOT_ANZAHL + 1)
+  menu_def = [
+    ['&File', [
+      '&Speichern', [f'Slot {s}::save_slot_{s}' for s in _SLOTS],
+      '&Laden', [f'Slot {s}::load_slot_{s}' for s in _SLOTS],
+      'Spielstände anzeigen::slot_uebersicht',
+      '---',
+      'Exit::exit',
+    ]],
+    ['&Hilfe', [
+      'Kurzanleitung::hilfe_allgemein',
+      'Hilfe zum aktuellen Tab::hilfe_tab',
+      'Erfolge und Statistik::erfolge_anzeigen',
+    ]],
+  ]
+
+  lTab_HQ = [
+    [sg.Text('Headquarter', font=('Arial', 12, 'bold'))],
+    [sg.HorizontalSeparator()],
+
+    # Astronauten-Übersicht
+    [sg.Text('Astronauten-Verteilung:', font=('Arial', 10, 'bold'))],
+    [sg.Text(f"Astronauten auf der Erde: {GAMESTATE['Astronauten']['Erde']}", key='astronauten_erde')],
+    [sg.Text(f"Astronauten auf dem Mond: {GAMESTATE['Astronauten']['Mond']}", key='astronauten_mond', visible=GAMESTATE['Planeten']['Mond']['entdeckt'])],
+    [sg.Text(f"Astronauten auf dem Mars: {GAMESTATE['Astronauten']['Mars']}", key='astronauten_mars', visible=GAMESTATE['Planeten']['Mars']['entdeckt'])],
+
+    [sg.HorizontalSeparator()],
+
+    # Schnell-Aktionen
+    [sg.Text('Schnell-Aktionen:', font=('Arial', 10, 'bold'))],
+    [sg.Text('Sende eine Raumsonde in den Weltraum, um etwas zu entdecken', key='hq_sonde_hinweis',
+             visible=not (GAMESTATE['Planeten']['Mond']['entdeckt'] and GAMESTATE['Planeten']['Mars']['entdeckt']))],
+    [sg.Button('Starte Raumsonde', key='starte_raumsonde', visible=GAMESTATE['Inventar'].get('Raumsonde', 0) > 0)],
+    [sg.Text('', key='raumsonde_status', size=(60, 1), visible=False)],
+
+    [sg.HorizontalSeparator()],
+    # Aktive Reisen (Übersicht)
+    [sg.Text('Aktive Reisen:', font=('Arial', 10, 'bold'))],
+    [sg.Text('', key='aktive_reisen_uebersicht', size=(60, 3))],
+
+    [sg.HorizontalSeparator()],
+    # Tutorial: nächstes Ziel
+    [sg.Text('Nächstes Ziel:', font=('Arial', 10, 'bold'))],
+    [sg.Text('', key='naechstes_ziel', size=(60, 4), text_color='light green')],
+    [sg.Button('Kurzanleitung', key='zeige_kurzanleitung'),
+     sg.Button('Erfolge und Statistik', key='zeige_erfolge')],
+  ]
+
+  lTab_Forschung = [
     [
       sg.Column([
-        [sg.Multiline(sLog, font=('Consolas', 8), disabled=True, size=(615, 50), key='Log')]
-      ],
-      size=(615, 50)
+        [
+          sg.Button(button_text=name, key=f'Erforsche {name}', visible=name == 'Eisenbarren' or GAMESTATE['Forschung'][data['erforschbar nach']]['erforscht'] or
+                    (data.get('erforschbar nach', '') and GAMESTATE['Forschung'].get(data.get('erforschbar nach', ''), {}).get('erforscht', False))),
+          sg.Image('images/checkmark.png', visible=GAMESTATE['Forschung'][name]['erforscht'], key=f'img_{name}')
+        ]
+        for name, data in SCIENCE.items()
+      ]),
+      sg.VerticalSeparator(),
+      sg.Column([
+        [sg.Text('', key='desc_research', visible=False, size=(30, 6))],
+        [sg.Text('', key='desc_dauer', visible=False)],
+        [sg.Text('', key='desc_costs', visible=False)],
+        [sg.Text('', key='desc_voraussetzung', visible=False)],
+        [sg.Text('', key='comment', visible=False)],
+        [
+          sg.Button('Erforschen', key='do_research', visible=False),
+          sg.Text('erforscht', key='already_researched', visible=False)
+        ],
+        [
+          sg.ProgressBar(0, orientation='h', size=(20, 20), key='progressbar_Forschung', visible=False),
+          sg.Button('Erforschen stoppen', key='stop_research', visible=False),
+        ],
+        [sg.Button('In Queue stellen', key='queue_research', visible=False)],
+        [sg.Text('Warteschlange:', font=('Arial', 10, 'bold'))],
+        [sg.Multiline('Keine Aufträge in der Warteschlange.', key='forschungs_queue_anzeige', size=(30, 3), disabled=True)],
+        [sg.Button('Storniere Forschungsauftrag', key='storniere_forschungsauftrag')],
+      ]),
+    ],
+  ]
+
+  lTab_Werkstatt = [
+    [
+      sg.Column([
+        [
+          sg.Button(button_text=name, key=f'baue_{name}', visible=GAMESTATE['Forschung'][name]['erforscht']),
+        ]
+        for name in SCIENCE
+
+      ]),
+      sg.VerticalSeparator(),
+      sg.Column([
+        [sg.Text('', key='desc_bauen', size=(40, 4))],
+        [sg.Text('', key='desc_materialien', size=(40, 12), visible=False)],
+        [sg.Text('Anzahl:', key='label_anzahl_bauen', visible=False), sg.Spin(values=[1], initial_value=1, key='anzahl_bauen', size=(5, 1), visible=False), sg.Button('Bauen', key='do_bauen', visible=False)],
+        [sg.Text('', key='bauen_unmöglich', visible=False, text_color='red')],
+        [sg.ProgressBar(0, orientation='h', size=(30, 20), key='progressbar_Bauen', visible=False)],
+        [sg.Button('Bauen stoppen', key='stop_bauen', visible=False)],
+        [sg.Text('Warteschlange:', font=('Arial',10,'bold'))],
+        [sg.Multiline('', key='bau_queue_anzeige', size=(40,3), disabled=True)],
+        [sg.Button('Nächsten Bauauftrag stornieren', key='storniere_bauauftrag')]
+      ]),
+    ],
+  ]
+
+  # Aktualisiere die LAYOUT-Definition:
+  lTab_Inventory = erstelle_inventar_tab()
+
+  lTab_Erde = [
+    [sg.Text('Erde')],
+    [sg.Text(f"Astronauten auf der Erde {GAMESTATE['Astronauten']['Erde']}", key='planet_erde_astronauten')],
+  ]
+
+  lTab_Mond = [
+    [sg.Text('Mond')],
+    [sg.Text(f"Astronauten auf dem Mond {GAMESTATE['Astronauten']['Mond']}", key='planet_mond_astronauten')],
+  ]
+
+  lTab_Mars = [
+    [sg.Text('Mars')],
+    [sg.Text(f"Astronauten auf dem Mars {GAMESTATE['Astronauten']['Mars']}", key='planet_mars_astronauten')],
+  ]
+
+  tabs_planets = [
+      [sg.Tab('Erde', lTab_Erde, key='tab_erde')],
+      [sg.Tab('Mond', lTab_Mond, key='tab_mond', visible=GAMESTATE['Planeten']['Mond']['entdeckt'])],
+      [sg.Tab('Mars', lTab_Mars, key='tab_mars', visible=GAMESTATE['Planeten']['Mars']['entdeckt'])],
+  ]
+
+  lTab_Planets = [
+    [
+      sg.TabGroup(
+        tabs_planets,
+        expand_x=True,
+        expand_y=True,
       )
     ]
   ]
-]
 
-iTicks = GAMESTATE['Ticks']
-iCredits = GAMESTATE['Credits']
-iForschungspunkte = GAMESTATE['Forschungspunkte']
-logger.debug(f'{iForschungspunkte = }')
-inventory = GAMESTATE['Inventar']
-sAktuelle_Forschung = list(SCIENCE.keys())[0]
+  _verkaufbar_start = verkaufbare_materialien(GAMESTATE['Inventar'])
 
-# Gespeicherte Reisen wiederherstellen (benötigt iTicks)
-for _r in GAMESTATE.get('AktiveReisen', []):
-  stelle_reise_her(_r)
+  lTab_Shop = [
+    [sg.Text('Shop', font=('Arial', 12, 'bold'))],
+    [sg.Text('Kaufe Materialien und Raumschiffe - oder mache Überschüsse zu Credits.')],
+    [sg.HorizontalSeparator()],
+    [sg.Text('Kaufen', font=('Arial', 10, 'bold'))],
+    [
+      sg.Column([
+        [sg.Button(button_text=name, key=f'shop_{name}', size=(15, 1))]
+        for name in SHOP_ITEMS
+      ], vertical_alignment='top'),
+      sg.VerticalSeparator(),
+      sg.Column([
+        [sg.Text('', key='shop_beschreibung', visible=False, size=(45, 5))],
+        [sg.Text('', key='shop_preis', visible=False)],
+        [
+          sg.Text('Anzahl:', key='shop_label_anzahl', visible=False),
+          sg.Spin([i for i in range(1, 101)], initial_value=1, key='shop_anzahl', size=(5, 1), visible=False),
+          sg.Button('Kaufen', key='do_kaufen', visible=False),
+        ],
+        [sg.Text('', key='shop_kommentar', visible=False, text_color='red')],
+      ], vertical_alignment='top'),
+    ],
+    [sg.HorizontalSeparator()],
+    [sg.Text('Verkaufen', font=('Arial', 10, 'bold'))],
+    [
+      sg.Text('Material:'),
+      sg.Combo(_verkaufbar_start, default_value=(_verkaufbar_start[0] if _verkaufbar_start else ''),
+               key='verkauf_material', size=(22, 1), readonly=True, enable_events=True),
+      sg.Text('Menge:'),
+      sg.Spin([i for i in range(1, 1001)], initial_value=1, key='verkauf_menge',
+              size=(5, 1), enable_events=True),
+      sg.Button('Verkaufen', key='do_verkaufen'),
+    ],
+    [sg.Text('', key='verkauf_info', size=(60, 2))],
+  ]
 
-window = sg.Window(config.TITLE, LAYOUT, size=config.WINDOW_SIZE, resizable=True, finalize=True)
+  _mond = GAMESTATE['Planeten']['Mond']['entdeckt']
+  _werkstatt_freigeschaltet = any(v['erforscht'] for v in GAMESTATE['Forschung'].values())
 
-# Bei Spielstart einmalig ausführen:
-aktualisiere_alle_anzeigen()
-aktualisiere_erde_jobs_anzeige()
-aktualisiere_missionen_anzeige()
-aktualisiere_mining_anzeige()
-aktualisiere_forschungs_buttons()
-pruefe_und_melde_erfolge()
+  tabs = [
+    [sg.Tab('HQ', lTab_HQ, key='tab_HQ')],
+    [sg.Tab('Arbeit', lTab_ErdeJobs, key='tab_Arbeit')],
+    [sg.Tab('Forschung', lTab_Forschung, key='tab_Forschung')],
+    [sg.Tab('Werkstatt', lTab_Werkstatt, key='tab_Werkstatt', visible=_werkstatt_freigeschaltet)],
+    [sg.Tab('Inventar', lTab_Inventory, key='tab_Inventar')],
+    [sg.Tab('Shop', lTab_Shop, key='tab_Shop')],
+    [sg.Tab('Planeten', lTab_Planets, key='tab_Planeten', visible=_mond)],
+    [sg.Tab('Reisen', lTab_Reisen, key='tab_Reisen', visible=_mond)],
+    [sg.Tab('Mondmissionen', lTab_Mondmissionen, key='tab_Mondmissionen', visible=_mond)],
+    [sg.Tab('Mining', lTab_Mining, key='tab_Mining', visible=_mond)],
+  ]
 
-# Beim allerersten Start die Kurzanleitung zeigen
-if not GAMESTATE.get('Tutorial_gezeigt'):
-  GAMESTATE['Tutorial_gezeigt'] = True
-  sg.popup_scrolled(tutorial.HILFE_ALLGEMEIN, title='Willkommen bei Spacegame',
-                    size=(70, 26), keep_on_top=True)
-  dump_gamestate()
+  LAYOUT = [
+    [sg.Menu(menu_def)],
+    [
+      [
+        sg.Text(text='Cycle:', key='tCycles'),
+        sg.Text(text='Credits:', key='tCredits'),
+        sg.Text(text='Forschungspunkte:', key='tForschungspunkte'),
+        sg.Text('', key='save_status', text_color='green', visible=False),
+      ],
+      sg.Column([
+        [sg.TabGroup(
+        tabs,
+        expand_x=True, expand_y=True, change_submits=True, enable_events=True, key='TabGroup_Main', tab_location='top')]
+      ]),
+      sg.Column([[sg.Image('images/TAB_HQ.png', key='img_Spalte3')]])
+    ],
 
-sAktuelle_Mondmission = None  # Aktuell im UI ausgewählte Mission
-while True:
-  event, values = window.read(timeout=100)  # kurzer timeout!
-  current_time = time.time()
+    [
+      [
+        sg.Column([
+          [sg.Multiline(sLog, font=('Consolas', 8), disabled=True, size=(615, 50), key='Log')]
+        ],
+        size=(615, 50)
+        )
+      ]
+    ]
+  ]
 
-  # Echtzeit-Tick-Handling
-  if current_time - letzter_tick >= TICK_INTERVAL:
-    iTicks += 1
-    logger.debug(f'Cycle: {iTicks}')
-    logger.debug(f'Forschungspunkte: {iForschungspunkte}')
-    letzter_tick = current_time
-    window['tCycles'].update(f'Cycle: {iTicks}')
-    window['tCredits'].update(f'Credits: {iCredits}')
-    window['tForschungspunkte'].update(f'Forschungspunkte: {iForschungspunkte}')
+  return LAYOUT
 
-    if bForschung_aktiv:
-      iAktueller_Forschungsfortschritt += 1
-      window['progressbar_Forschung'].update(current_count=iAktueller_Forschungsfortschritt)
-      if iAktueller_Forschungsfortschritt >= iMax_Forschung:
-        add2log(f"Forschung von '{sAktuelle_Forschung}' beendet")
-        bForschung_aktiv = False
-        GAMESTATE['Forschung'][sAktuelle_Forschung]['erforscht'] = True
-        achievements.zaehle(GAMESTATE, 'forschungen_abgeschlossen')
-        dump_gamestate()
 
-        # Update UI elements for completed research
-        window['progressbar_Forschung'].update(visible=False)
-        window['stop_research'].update(visible=False)
-        window['already_researched'].update(visible=True)
-        aktualisiere_forschungs_buttons()
-        aktualisiere_tab_sichtbarkeit()
+def starte_ui():
+  """Erzeugt das Fenster und bringt alle Anzeigen auf den Stand des Spielstands."""
+  global window
 
-    # Forschungs-Queue-Handling: Wenn keine Forschung läuft, aber etwas in der Queue ist → Starte nächste Forschung
-    if not bForschung_aktiv and len(forschungs_queue) > 0:
-      naechste_forschung = forschungs_queue[0]
-      if GAMESTATE['Forschung'][naechste_forschung]['erforscht']:
-        # Bereits erforscht - aus der Queue entfernen
-        forschungs_queue.pop(0)
-        aktualisiere_forschungs_queue_anzeige()
-      elif iForschungspunkte >= SCIENCE[naechste_forschung]['kosten']:
-        sAktuelle_Forschung = forschungs_queue.pop(0)
-        erforsche(sAktuelle_Forschung)
-        aktualisiere_forschungs_queue_anzeige()
+  window = sg.Window(config.TITLE, erstelle_layout(),
+                     size=config.WINDOW_SIZE, resizable=True, finalize=True)
+  aktualisiere_alle_anzeigen()
+  aktualisiere_erde_jobs_anzeige()
+  aktualisiere_missionen_anzeige()
+  aktualisiere_mining_anzeige()
+  aktualisiere_forschungs_buttons()
+  pruefe_und_melde_erfolge()
 
-    # Bau-Queue-Handling: Wenn kein Bau läuft, aber etwas in der Queue ist → Starte nächsten Bau
-    if not bBauen_aktiv and len(bau_queue) > 0:
-      sAktuelles_Bauen = bau_queue.pop(0)
-      baue(sAktuelles_Bauen)    # Startet den üblichen Bauprozess
-      aktualisiere_bau_queue_anzeige()
+  # Beim allerersten Start die Kurzanleitung zeigen
+  if not GAMESTATE.get('Tutorial_gezeigt'):
+    GAMESTATE['Tutorial_gezeigt'] = True
+    sg.popup_scrolled(tutorial.HILFE_ALLGEMEIN, title='Willkommen bei Spacegame',
+                      size=(70, 26), keep_on_top=True)
+    dump_gamestate()
 
-    if bBauen_aktiv:
-        iAktueller_Baufortschritt += 1
-        window['progressbar_Bauen'].update(current_count=iAktueller_Baufortschritt)
-        if iAktueller_Baufortschritt >= iMax_Bauen:
-            beende_bauen(sAktuelles_Bauen)
-        window['stop_research'].update(visible=False)
-        window[f'img_{sAktuelles_Bauen}'].update(visible=True)
-        for sForschung in list(SCIENCE.keys()):
-          window[f'baue_{sForschung}'].update(visible=GAMESTATE['Forschung'][sForschung]['erforscht'])
 
-        window.refresh()
+def spiel_schleife():
+  """Die Hauptschleife: Events verarbeiten und die Spielzeit takten."""
+  global iTicks, iCredits, iForschungspunkte, letzter_tick
+  global iSaveStatusTimer, bForschung_aktiv, iAktueller_Forschungsfortschritt, iAktueller_Baufortschritt
+  global sAktuelles_Bauen, sAktuelle_Forschung, sAktuelle_Mondmission, sAktueller_Shop_Artikel
 
-    # Aktive Reisen verwalten
-    if aktive_reisen:
-      verwalte_aktive_reisen()
+  sAktuelle_Mondmission = None  # Aktuell im UI ausgewaehlte Mission
+  while True:
+    event, values = window.read(timeout=config.WINDOW_READ_TIMEOUT)
+    current_time = time.time()
 
-    # Raumsondenflug verwalten
-    if raumsonde_flug is not None and raumsonde_flug.aktiv:
-      if raumsonde_flug.tick():
-        beende_raumsondenflug()
-      else:
-        aktualisiere_hq_anzeige()
-
-    for mission in missionen_aktiv[:]:  # Kopie der Liste, da ggf. Missionen entfernt werden
-      if mission.aktiv:
-        abgeschlossen = mission.tick()
-        if abgeschlossen:
-          beende_mondmission(mission.name)
-          missionen_aktiv.remove(mission)
-    aktualisiere_missionen_anzeige()
-
-    # Mining expeditions processing
-    for mi in mining_aktiv[:]:
-        if mi.aktiv:
-            abgeschlossen = mi.tick()
-            if abgeschlossen:
-                beende_mining(mi)
-                mining_aktiv.remove(mi)
-    aktualisiere_mining_anzeige()
-
-    # Earth Jobs processing
-    for job in erde_jobs_aktiv[:]:
-      if job.aktiv:
-        abgeschlossen = job.tick()
-        if abgeschlossen:
-          beende_erde_job(job)
-          erde_jobs_aktiv.remove(job)
-    aktualisiere_erde_jobs_anzeige()
-
-  # Reise-Anzeige regelmäßig aktualisieren
-    aktualisiere_reise_anzeige()
-
-    if iTicks % config.CREDITS_EXTRA_TICKS == 0:
-      iCredits += config.CREDITS_EXTRA
-
-    if iTicks % config.SCIENCE_POINTS_EXTRA_TICKS == 0:
-      iForschungspunkte += config.SCIENCE_POINTS_EXTRA
-
-    if iTicks % config.AUTOSAVE_INTERVAL == 0:
-      dump_gamestate()
-
-    if iSaveStatusTimer > 0:
-      iSaveStatusTimer -= 1
-      if iSaveStatusTimer == 0:
-        window['save_status'].update(visible=False)
-
-    # Erfolge und Tutorial-Ziel einmal pro Zyklus auffrischen
-    if pruefe_und_melde_erfolge():
+    # Echtzeit-Tick-Handling
+    if current_time - letzter_tick >= config.TICK_INTERVAL:
+      iTicks += 1
+      logger.debug(f'Cycle: {iTicks}')
+      logger.debug(f'Forschungspunkte: {iForschungspunkte}')
+      letzter_tick = current_time
+      window['tCycles'].update(f'Cycle: {iTicks}')
       window['tCredits'].update(f'Credits: {iCredits}')
       window['tForschungspunkte'].update(f'Forschungspunkte: {iForschungspunkte}')
-    aktualisiere_ziel_anzeige()
 
-  if event in (sg.WINDOW_CLOSED, 'Exit', 'Exit::exit'):
-    dump_gamestate()
-    break
+      if bForschung_aktiv:
+        iAktueller_Forschungsfortschritt += 1
+        window['progressbar_Forschung'].update(current_count=iAktueller_Forschungsfortschritt)
+        if iAktueller_Forschungsfortschritt >= iMax_Forschung:
+          add2log(f"Forschung von '{sAktuelle_Forschung}' beendet")
+          bForschung_aktiv = False
+          GAMESTATE['Forschung'][sAktuelle_Forschung]['erforscht'] = True
+          achievements.zaehle(GAMESTATE, 'forschungen_abgeschlossen')
+          dump_gamestate()
 
-  if event == 'TabGroup_Main' and values['TabGroup_Main'] == 'tab_Inventar':
-    aktualisiere_inventar_anzeige()
-    aktualisiere_raumschiff_anzeige()
-    aktualisiere_inventar_statistiken()
+          # Update UI elements for completed research
+          window['progressbar_Forschung'].update(visible=False)
+          window['stop_research'].update(visible=False)
+          window['already_researched'].update(visible=True)
+          aktualisiere_forschungs_buttons()
+          aktualisiere_tab_sichtbarkeit()
 
-  if event == 'TabGroup_Main':
-    current_tab = values['TabGroup_Main']
-    safe_update_image(current_tab)
+      # Forschungs-Queue-Handling: Wenn keine Forschung läuft, aber etwas in der Queue ist → Starte nächste Forschung
+      if not bForschung_aktiv and len(forschungs_queue) > 0:
+        naechste_forschung = forschungs_queue[0]
+        if GAMESTATE['Forschung'][naechste_forschung]['erforscht']:
+          # Bereits erforscht - aus der Queue entfernen
+          forschungs_queue.pop(0)
+          aktualisiere_forschungs_queue_anzeige()
+        elif iForschungspunkte >= SCIENCE[naechste_forschung]['kosten']:
+          sAktuelle_Forschung = forschungs_queue.pop(0)
+          erforsche(sAktuelle_Forschung)
+          aktualisiere_forschungs_queue_anzeige()
 
-    if current_tab == 'tab_Forschung':
-      zeige_Forschung(sAktuelle_Forschung)
-    elif current_tab == 'tab_Reisen':
-      aktualisiere_fracht_spinner()
+      # Bau-Queue-Handling: Wenn kein Bau läuft, aber etwas in der Queue ist → Starte nächsten Bau
+      if not bBauen_aktiv and len(bau_queue) > 0:
+        sAktuelles_Bauen = bau_queue.pop(0)
+        baue(sAktuelles_Bauen)    # Startet den üblichen Bauprozess
+        aktualisiere_bau_queue_anzeige()
+
+      if bBauen_aktiv:
+          iAktueller_Baufortschritt += 1
+          window['progressbar_Bauen'].update(current_count=iAktueller_Baufortschritt)
+          if iAktueller_Baufortschritt >= iMax_Bauen:
+              beende_bauen(sAktuelles_Bauen)
+          window['stop_research'].update(visible=False)
+          window[f'img_{sAktuelles_Bauen}'].update(visible=True)
+          for sForschung in list(SCIENCE.keys()):
+            window[f'baue_{sForschung}'].update(visible=GAMESTATE['Forschung'][sForschung]['erforscht'])
+
+          window.refresh()
+
+      # Aktive Reisen verwalten
+      if aktive_reisen:
+        verwalte_aktive_reisen()
+
+      # Raumsondenflug verwalten
+      if raumsonde_flug is not None and raumsonde_flug.aktiv:
+        if raumsonde_flug.tick():
+          beende_raumsondenflug()
+        else:
+          aktualisiere_hq_anzeige()
+
+      for mission in missionen_aktiv[:]:  # Kopie der Liste, da ggf. Missionen entfernt werden
+        if mission.aktiv:
+          abgeschlossen = mission.tick()
+          if abgeschlossen:
+            beende_mondmission(mission.name)
+            missionen_aktiv.remove(mission)
+      aktualisiere_missionen_anzeige()
+
+      # Mining expeditions processing
+      for mi in mining_aktiv[:]:
+          if mi.aktiv:
+              abgeschlossen = mi.tick()
+              if abgeschlossen:
+                  beende_mining(mi)
+                  mining_aktiv.remove(mi)
+      aktualisiere_mining_anzeige()
+
+      # Earth Jobs processing
+      for job in erde_jobs_aktiv[:]:
+        if job.aktiv:
+          abgeschlossen = job.tick()
+          if abgeschlossen:
+            beende_erde_job(job)
+            erde_jobs_aktiv.remove(job)
+      aktualisiere_erde_jobs_anzeige()
+
+    # Reise-Anzeige regelmäßig aktualisieren
       aktualisiere_reise_anzeige()
-    elif current_tab == 'tab_Shop':
-      aktualisiere_verkauf_anzeige()
-    elif current_tab == 'tab_HQ':
+
+      if iTicks % config.CREDITS_EXTRA_TICKS == 0:
+        iCredits += config.CREDITS_EXTRA
+
+      if iTicks % config.SCIENCE_POINTS_EXTRA_TICKS == 0:
+        iForschungspunkte += config.SCIENCE_POINTS_EXTRA
+
+      if iTicks % config.AUTOSAVE_INTERVAL == 0:
+        dump_gamestate()
+
+      if iSaveStatusTimer > 0:
+        iSaveStatusTimer -= 1
+        if iSaveStatusTimer == 0:
+          window['save_status'].update(visible=False)
+
+      # Erfolge und Tutorial-Ziel einmal pro Zyklus auffrischen
+      if pruefe_und_melde_erfolge():
+        window['tCredits'].update(f'Credits: {iCredits}')
+        window['tForschungspunkte'].update(f'Forschungspunkte: {iForschungspunkte}')
       aktualisiere_ziel_anzeige()
 
-  elif event in ['HQ', 'Forschung', 'Inventar', 'Planeten', 'Shop']:
-    tab_map = {
-        'HQ': 'tab_HQ',
-        'Forschung': 'tab_Forschung',
-        'Inventar': 'tab_Inventar',
-        'Planeten': 'tab_Planeten',
-        'Shop': 'tab_Shop'
-    }
-    target_tab = tab_map.get(event)
-    window[target_tab].select()
-    safe_update_image(event)
+    if event in (sg.WINDOW_CLOSED, 'Exit', 'Exit::exit'):
+      dump_gamestate()
+      break
 
-  elif event.startswith('Erforsche '):
-    sAktuelle_Forschung = event.split(' ', 1)[1]
-    zeige_Forschung(sAktuelle_Forschung)
+    if event == 'TabGroup_Main' and values['TabGroup_Main'] == 'tab_Inventar':
+      aktualisiere_inventar_anzeige()
+      aktualisiere_raumschiff_anzeige()
+      aktualisiere_inventar_statistiken()
 
-  elif event == 'do_research':
-    add2log(f"Erforsche '{sAktuelle_Forschung}'")
-    erforsche(sAktuelle_Forschung)
+    if event == 'TabGroup_Main':
+      current_tab = values['TabGroup_Main']
+      safe_update_image(current_tab)
 
-  elif event == 'stop_research':
-    window['progressbar_Forschung'].update(visible=False)
-    window['stop_research'].update(visible=False)
-    window['do_research'].update(visible=True)
-    if bForschung_aktiv:
-      iForschungspunkte += SCIENCE[sAktuelle_Forschung]['kosten']
-      add2log(f"Forschung von '{sAktuelle_Forschung}' gestoppt - Forschungspunkte zurückerstattet")
-    bForschung_aktiv = False
+      if current_tab == 'tab_Forschung':
+        zeige_Forschung(sAktuelle_Forschung)
+      elif current_tab == 'tab_Reisen':
+        aktualisiere_fracht_spinner()
+        aktualisiere_reise_anzeige()
+      elif current_tab == 'tab_Shop':
+        aktualisiere_verkauf_anzeige()
+      elif current_tab == 'tab_HQ':
+        aktualisiere_ziel_anzeige()
 
-  elif event == 'queue_research':
-    forschungsauftrag_hinzufuegen(sAktuelle_Forschung)
+    elif event in ['HQ', 'Forschung', 'Inventar', 'Planeten', 'Shop']:
+      tab_map = {
+          'HQ': 'tab_HQ',
+          'Forschung': 'tab_Forschung',
+          'Inventar': 'tab_Inventar',
+          'Planeten': 'tab_Planeten',
+          'Shop': 'tab_Shop'
+      }
+      target_tab = tab_map.get(event)
+      window[target_tab].select()
+      safe_update_image(event)
 
-  elif event == 'storniere_forschungsauftrag':
-    if forschungs_queue:
-      removed = forschungs_queue.pop()
-      add2log(f"Forschungsauftrag '{removed}' storniert")
-      aktualisiere_forschungs_queue_anzeige()
+    elif event.startswith('Erforsche '):
+      sAktuelle_Forschung = event.split(' ', 1)[1]
+      zeige_Forschung(sAktuelle_Forschung)
 
-  elif event == 'stop_bauen':
-    stoppe_bauen()
+    elif event == 'do_research':
+      add2log(f"Erforsche '{sAktuelle_Forschung}'")
+      erforsche(sAktuelle_Forschung)
 
-  elif event == 'storniere_bauauftrag':
-    if bau_queue:
-      canceled = bau_queue.pop(0)
-      add2log(f"Bauauftrag '{canceled}' aus der Warteschlange entfernt.")
-      aktualisiere_bau_queue_anzeige()
-    else:
-      add2log("Keine Bauaufträge zu stornieren.")
+    elif event == 'stop_research':
+      window['progressbar_Forschung'].update(visible=False)
+      window['stop_research'].update(visible=False)
+      window['do_research'].update(visible=True)
+      if bForschung_aktiv:
+        iForschungspunkte += SCIENCE[sAktuelle_Forschung]['kosten']
+        add2log(f"Forschung von '{sAktuelle_Forschung}' gestoppt - Forschungspunkte zurückerstattet")
+      bForschung_aktiv = False
 
-  # Earth Jobs event handling
-  elif event and event.startswith('start_erde_job_'):
-    job_name = event.replace('start_erde_job_', '')
-    if job_name in ERDE_JOBS:
-      starte_erde_job(job_name)
+    elif event == 'queue_research':
+      forschungsauftrag_hinzufuegen(sAktuelle_Forschung)
 
+    elif event == 'storniere_forschungsauftrag':
+      if forschungs_queue:
+        removed = forschungs_queue.pop()
+        add2log(f"Forschungsauftrag '{removed}' storniert")
+        aktualisiere_forschungs_queue_anzeige()
 
-  # ---- Speichern / Laden / Hilfe (Menü) ----
-  elif event.startswith('Slot ') and '::save_slot_' in event:
-    _slot = int(event.rsplit('_', 1)[1])
-    dump_gamestate(_slot)
-    add2log(f"Spielstand in Slot {_slot} gespeichert!")
+    elif event == 'stop_bauen':
+      stoppe_bauen()
 
-  elif event.startswith('Slot ') and '::load_slot_' in event:
-    lade_spielstand(int(event.rsplit('_', 1)[1]))
-
-  elif event == 'Spielstände anzeigen::slot_uebersicht':
-    zeige_slot_uebersicht()
-
-  elif event == 'Kurzanleitung::hilfe_allgemein' or event == 'zeige_kurzanleitung':
-    sg.popup_scrolled(tutorial.HILFE_ALLGEMEIN, title='Kurzanleitung', size=(70, 26), keep_on_top=True)
-
-  elif event == 'Hilfe zum aktuellen Tab::hilfe_tab':
-    _tab = values.get('TabGroup_Main', 'tab_HQ')
-    sg.popup_scrolled(tutorial.hilfe_fuer_tab(_tab), title='Hilfe', size=(70, 18), keep_on_top=True)
-
-  elif event == 'Erfolge und Statistik::erfolge_anzeigen' or event == 'zeige_erfolge':
-    zeige_erfolge_popup()
-
-  elif event.startswith('baue_'):
-      sAktuelles_Bauen = event.replace('baue_', '')
-      zeige_bauen(sAktuelles_Bauen)
-
-  elif event == 'do_bauen':
-      baue(sAktuelles_Bauen)
-
-  elif event == 'reise_astronauten' or event.startswith(('reise_von_', 'reise_zu_', 'reise_raumschiff_')):
-      aktualisiere_reise_info(values)
-
-  elif event == 'starte_reise':
-      von_planet, zu_planet, raumschiff_typ = get_reise_auswahl(values)
-      try:
-          astronauten_anzahl = int(values.get('reise_astronauten', 0) or 0)
-      except (ValueError, TypeError):
-          astronauten_anzahl = 0
-      # Fracht zusammenstellen
-      fracht_dict = {}
-      for material in FRACHT_MATERIALIEN:
-          try:
-              anzahl = int(values.get(f'fracht_{material}', 0) or 0)
-          except (ValueError, TypeError):
-              anzahl = 0
-          if anzahl > 0:
-              fracht_dict[material] = anzahl
-      if von_planet and zu_planet and raumschiff_typ:
-          if von_planet == zu_planet:
-              add2log("Start- und Zielplanet sind identisch")
-          elif starte_reise(raumschiff_typ, von_planet, zu_planet, astronauten_anzahl, fracht_dict):
-              aktualisiere_alle_anzeigen()
-              aktualisiere_fracht_spinner()
-              aktualisiere_reise_info(values)
+    elif event == 'storniere_bauauftrag':
+      if bau_queue:
+        canceled = bau_queue.pop(0)
+        add2log(f"Bauauftrag '{canceled}' aus der Warteschlange entfernt.")
+        aktualisiere_bau_queue_anzeige()
       else:
-          add2log("Bitte Startplanet, Zielplanet und Raumschiff auswählen")
+        add2log("Keine Bauaufträge zu stornieren.")
 
-  elif event == 'reise_abbrechen':
-      # Reise-Formular zurücksetzen
-      for _p in ALLE_PLANETEN:
-          window[f'reise_von_{_p}'].update(value=False)
-          window[f'reise_zu_{_p}'].update(value=False)
-      for _t in ['Mondlander', 'Rakete']:
-          window[f'reise_raumschiff_{_t}'].update(value=False)
-      window['reise_astronauten'].update(value=0)
-      for _mat in FRACHT_MATERIALIEN:
-          window[f'fracht_{_mat}'].update(value=0)
-      window['reise_info'].update(value='')
+    # Earth Jobs event handling
+    elif event and event.startswith('start_erde_job_'):
+      job_name = event.replace('start_erde_job_', '')
+      if job_name in ERDE_JOBS:
+        starte_erde_job(job_name)
 
-  elif event == 'starte_raumsonde':
-      starte_raumsonde()
 
-  elif event.startswith('shop_'):
-      sAktueller_Shop_Artikel = event.replace('shop_', '')
-      zeige_shop_artikel(sAktueller_Shop_Artikel)
+    # ---- Speichern / Laden / Hilfe (Menü) ----
+    elif event.startswith('Slot ') and '::save_slot_' in event:
+      _slot = int(event.rsplit('_', 1)[1])
+      dump_gamestate(_slot)
+      add2log(f"Spielstand in Slot {_slot} gespeichert!")
 
-  elif event == 'do_kaufen':
-      if sAktueller_Shop_Artikel:
-          kaufe_shop_artikel(sAktueller_Shop_Artikel)
+    elif event.startswith('Slot ') and '::load_slot_' in event:
+      lade_spielstand(int(event.rsplit('_', 1)[1]))
 
-  elif event in ('verkauf_material', 'verkauf_menge'):
-      aktualisiere_verkauf_anzeige()
+    elif event == 'Spielstände anzeigen::slot_uebersicht':
+      zeige_slot_uebersicht()
 
-  elif event == 'do_verkaufen':
-      verkaufe_material()
+    elif event == 'Kurzanleitung::hilfe_allgemein' or event == 'zeige_kurzanleitung':
+      sg.popup_scrolled(tutorial.HILFE_ALLGEMEIN, title='Kurzanleitung', size=(70, 26), keep_on_top=True)
 
-  elif event.startswith('mondmission_'):
-    sAktuelle_Mondmission = event.replace('mondmission_', '')
-    zeige_mondmission(sAktuelle_Mondmission)
+    elif event == 'Hilfe zum aktuellen Tab::hilfe_tab':
+      _tab = values.get('TabGroup_Main', 'tab_HQ')
+      sg.popup_scrolled(tutorial.hilfe_fuer_tab(_tab), title='Hilfe', size=(70, 18), keep_on_top=True)
 
-  elif event == 'do_mondmission':
-    starte_mondmission(sAktuelle_Mondmission)
+    elif event == 'Erfolge und Statistik::erfolge_anzeigen' or event == 'zeige_erfolge':
+      zeige_erfolge_popup()
 
-  elif any(event == f'slot_{i}_stop' for i in range(len(MISSION_SLOTS))):
-    for i, name in enumerate(MISSION_SLOTS):
-      if event == f'slot_{i}_stop':
-        stoppe_mondmission(name)
-        break
+    elif event.startswith('baue_'):
+        sAktuelles_Bauen = event.replace('baue_', '')
+        zeige_bauen(sAktuelles_Bauen)
 
-  elif event == 'mining_starte_Mond':
-    starte_mining('Mond')
+    elif event == 'do_bauen':
+        baue(sAktuelles_Bauen)
 
-  elif event == 'mining_starte_Mars':
-    starte_mining('Mars')
+    elif event == 'reise_astronauten' or event.startswith(('reise_von_', 'reise_zu_', 'reise_raumschiff_')):
+        aktualisiere_reise_info(values)
 
-  elif any(event == f'mining_slot_{i}_stop' for i in range(MINING_SLOTS)):
-    for i in range(MINING_SLOTS):
-      if event == f'mining_slot_{i}_stop':
-        stoppe_mining(i)
-        break
+    elif event == 'starte_reise':
+        von_planet, zu_planet, raumschiff_typ = get_reise_auswahl(values)
+        try:
+            astronauten_anzahl = int(values.get('reise_astronauten', 0) or 0)
+        except (ValueError, TypeError):
+            astronauten_anzahl = 0
+        # Fracht zusammenstellen
+        fracht_dict = {}
+        for material in FRACHT_MATERIALIEN:
+            try:
+                anzahl = int(values.get(f'fracht_{material}', 0) or 0)
+            except (ValueError, TypeError):
+                anzahl = 0
+            if anzahl > 0:
+                fracht_dict[material] = anzahl
+        if von_planet and zu_planet and raumschiff_typ:
+            if von_planet == zu_planet:
+                add2log("Start- und Zielplanet sind identisch")
+            elif starte_reise(raumschiff_typ, von_planet, zu_planet, astronauten_anzahl, fracht_dict):
+                aktualisiere_alle_anzeigen()
+                aktualisiere_fracht_spinner()
+                aktualisiere_reise_info(values)
+        else:
+            add2log("Bitte Startplanet, Zielplanet und Raumschiff auswählen")
 
-  if event != '__TIMEOUT__':
-    # Inventar nur aktualisieren wenn sich etwas geändert haben könnte
-    if event in ['do_bauen', 'stop_bauen'] or event.startswith('baue_') or bBauen_aktiv:
-        aktualisiere_inventar_anzeige()
-        aktualisiere_raumschiff_anzeige()
-        aktualisiere_inventar_statistiken()
+    elif event == 'reise_abbrechen':
+        # Reise-Formular zurücksetzen
+        for _p in ALLE_PLANETEN:
+            window[f'reise_von_{_p}'].update(value=False)
+            window[f'reise_zu_{_p}'].update(value=False)
+        for _t in ['Mondlander', 'Rakete']:
+            window[f'reise_raumschiff_{_t}'].update(value=False)
+        window['reise_astronauten'].update(value=0)
+        for _mat in FRACHT_MATERIALIEN:
+            window[f'fracht_{_mat}'].update(value=0)
+        window['reise_info'].update(value='')
 
-  # logger.debug(f'{event = } {iCredits = }')
+    elif event == 'starte_raumsonde':
+        starte_raumsonde()
 
-  # for x, y in GAMESTATE['Forschung'].items():
-  #   print(x, y)
-  # print('#' * 50)
+    elif event.startswith('shop_'):
+        sAktueller_Shop_Artikel = event.replace('shop_', '')
+        zeige_shop_artikel(sAktueller_Shop_Artikel)
+
+    elif event == 'do_kaufen':
+        if sAktueller_Shop_Artikel:
+            kaufe_shop_artikel(sAktueller_Shop_Artikel)
+
+    elif event in ('verkauf_material', 'verkauf_menge'):
+        aktualisiere_verkauf_anzeige()
+
+    elif event == 'do_verkaufen':
+        verkaufe_material()
+
+    elif event.startswith('mondmission_'):
+      sAktuelle_Mondmission = event.replace('mondmission_', '')
+      zeige_mondmission(sAktuelle_Mondmission)
+
+    elif event == 'do_mondmission':
+      starte_mondmission(sAktuelle_Mondmission)
+
+    elif any(event == f'slot_{i}_stop' for i in range(len(MISSION_SLOTS))):
+      for i, name in enumerate(MISSION_SLOTS):
+        if event == f'slot_{i}_stop':
+          stoppe_mondmission(name)
+          break
+
+    elif event == 'mining_starte_Mond':
+      starte_mining('Mond')
+
+    elif event == 'mining_starte_Mars':
+      starte_mining('Mars')
+
+    elif any(event == f'mining_slot_{i}_stop' for i in range(MINING_SLOTS)):
+      for i in range(MINING_SLOTS):
+        if event == f'mining_slot_{i}_stop':
+          stoppe_mining(i)
+          break
+
+    if event != '__TIMEOUT__':
+      # Inventar nur aktualisieren wenn sich etwas geändert haben könnte
+      if event in ['do_bauen', 'stop_bauen'] or event.startswith('baue_') or bBauen_aktiv:
+          aktualisiere_inventar_anzeige()
+          aktualisiere_raumschiff_anzeige()
+          aktualisiere_inventar_statistiken()
+
+    # logger.debug(f'{event = } {iCredits = }')
+
+    # for x, y in GAMESTATE['Forschung'].items():
+    #   print(x, y)
+    # print('#' * 50)
+
+
+def main():
+  """Einstiegspunkt: Logging, Theme, Spielstand, Fenster, Hauptschleife."""
+  global letzter_tick
+
+  logging.basicConfig(
+      level=logging.WARNING,
+      format='%(asctime)s - %(levelname)s - %(message)s',
+      datefmt='%H:%M:%S'
+  )
+  sg.theme('Dark Teal 6')
+  letzter_tick = time.time()
+  initialisiere_spielstand()
+  starte_ui()
+  spiel_schleife()
+
+
+if __name__ == '__main__':
+  main()
