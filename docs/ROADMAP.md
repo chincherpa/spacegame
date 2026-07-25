@@ -207,10 +207,33 @@ The game is playable start to finish:
 
 ---
 
+## Code structure
+
+`main.py` is importable. Module level holds only constants, data tables,
+classes and functions; everything executable lives in:
+
+| Function | Responsibility |
+| --- | --- |
+| `initialisiere_spielstand(slot)` | load a save and rebuild the runtime state |
+| `erstelle_layout()` | build the window layout from the current state |
+| `starte_ui()` | create the window and refresh every panel |
+| `spiel_schleife()` | the event loop and the game tick |
+| `main()` | logging, theme, then the four above, behind a `__main__` guard |
+
+`tests/test_startup.py` enforces this: it fails if executable code reappears at
+module level, or if the `__main__` guard is removed.
+
+Tests reach the real code through the `game` fixture (`tests/conftest.py`),
+which imports `main` with FreeSimpleGUI stubbed and a fresh default save. Tests
+must not re-implement game logic - if a test needs a rule, it should call the
+function that implements it.
+
 ## Known gaps
 
-- `core/` and `ui/` contain a refactor of the game logic that `main.py` never
-  adopted; only the tests import them. Either wire them up or drop them.
+- Game logic and `window[...]` calls still live in the same functions in
+  `main.py`. Pure logic should move into GUI-free modules the way
+  `travel_rules.py` already does.
+- `lade_spielstand()` duplicates most of `initialisiere_spielstand()`.
 - `Mondstation_Modul` and `Kommunikations_Upgrade` are handed out as mission
   rewards but have no gameplay effect yet.
 
@@ -219,5 +242,9 @@ The game is playable start to finish:
 The core loop is complete and verified winnable end to end. Travel now costs
 fuel and life support and can go wrong, the shop buys and sells, progress fits
 into three save slots, and a tutorial plus achievements guide and reward the
-player. Remaining work is depth: astronaut management, a Mars base, more
-mission variety, and untangling `main.py`.
+player.
+
+`main.py` is importable and covered by tests that exercise it directly rather
+than copies of it. Remaining work is depth: astronaut management, a Mars base,
+more mission variety, and separating the game logic in `main.py` from the
+FreeSimpleGUI calls it is still interleaved with.

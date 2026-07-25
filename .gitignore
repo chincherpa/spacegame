@@ -7,3 +7,8 @@ __pycache__/
 Archiv/
 *.pyc
 .vscode/
+
+# Spielstaende sind Spielerdaten, kein Quellcode (Slot 1 = savefile.json)
+savefile.json
+savefile_*.json
+.coverage

@@ -24,6 +24,12 @@ Erledigt:
   - Tutorial: "Nächstes Ziel" im HQ + Kurzanleitung + Hilfe pro Tab
   - Erfolge und Statistik
   - Neue Materialien erscheinen sofort im Inventar
+  - main.py ist importierbar: kein Fenster und keine Endlosschleife mehr auf
+    Modulebene, dafür main() mit __main__-Guard
+  - Tests laufen gegen den echten Code in main.py statt gegen Kopien davon
+  - core/ und ui/ (toter Code, von main.py nie benutzt) entfernt
+  - config.py enthält nur noch Konstanten, die auch gelesen werden
+  - Spielstände (savefile*.json) sind nicht mehr im Git
 
 Mittel:
   - Mining/Missionen: mehr Belohnungsvielfalt, verkettete Missionen
@@ -34,8 +40,13 @@ Mittel:
 Groß:
   - Astronauten-Management (Erfahrung, Skills, Namen)
   - Mars-Basis mit eigenen Missionen
-  - main.py entflechten: die Module core/ und ui/ existieren bereits,
-    werden aber von main.py nicht benutzt (nur von den Tests)
+  - main.py weiter entflechten: der Einstiegspunkt ist jetzt sauber
+    (main() / initialisiere_spielstand() / erstelle_layout() / starte_ui() /
+    spiel_schleife()), aber Spiellogik und window[...]-Aufrufe stecken noch in
+    denselben Funktionen. Nächster Schritt: reine Logik nach Vorbild von
+    travel_rules.py in eigene, GUI-freie Module ziehen.
+  - lade_spielstand() und initialisiere_spielstand() machen fast dasselbe;
+    zusammenführen, sobald die UI-Aufrufe getrennt sind.
 
 Sehr groß / Konzept:
   - Weitere Planeten und ein größeres Sonnensystem

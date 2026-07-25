@@ -1,253 +1,216 @@
 """
-Integration tests for building functionality.
-Tests validate material checks, building process, and queue management.
+Integration tests for the workshop / building system.
+
+These tests call the real baue(), beende_bauen(), stoppe_bauen() and
+berechne_rohstoffe() functions from main.py through the `game` fixture, so the
+material bookkeeping under test is the bookkeeping the game actually performs.
 """
 import pytest
-import copy
+
+import config
+
+
+def _set_build_amount(game, amount):
+    """Make the 'anzahl_bauen' spinner report `amount` to baue()."""
+    game.window.__getitem__.return_value.get.return_value = amount
+
+
+def _start_build(game, item):
+    """Start a build the way the event loop does.
+
+    The loop assigns the module-level `sAktuelles_Bauen` and then calls
+    `baue(sAktuelles_Bauen)`; `stoppe_bauen()` reads that global, so a test that
+    only called baue() would cancel nothing.
+    """
+    game.sAktuelles_Bauen = item
+    game.baue(item)
 
 
 class TestMaterialChecks:
-    """Tests for building material requirement checks."""
+    """baue() must refuse to start when materials are missing."""
 
-    def test_check_materials_available(self, fresh_gamestate):
-        """Test checking if materials are available for building."""
-        gs = copy.deepcopy(fresh_gamestate)
-        gs['Inventar']['Roheisen'] = 10
-        
-        # Check if we can build Eisenbarren (requires 1 Roheisen)
-        item = gs['Werkstatt']['Eisenbarren']
-        can_build = True
-        for material, anzahl in item['material'].items():
-            if gs['Inventar'].get(material, 0) < anzahl:
-                can_build = False
-                break
-        
-        assert can_build == True
+    def test_build_starts_when_material_is_available(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        _start_build(game, 'Eisenbarren')
+        assert game.bBauen_aktiv is True
 
-    def test_check_materials_not_available(self, fresh_gamestate):
-        """Test checking when materials are not available."""
-        gs = copy.deepcopy(fresh_gamestate)
-        gs['Inventar']['Roheisen'] = 0
-        
-        # Check if we can build Eisenbarren (requires 1 Roheisen)
-        item = gs['Werkstatt']['Eisenbarren']
-        can_build = True
-        for material, anzahl in item['material'].items():
-            if gs['Inventar'].get(material, 0) < anzahl:
-                can_build = False
-                break
-        
-        assert can_build == False
+    def test_build_refused_without_material(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 0
+        _start_build(game, 'Eisenbarren')
+        assert game.bBauen_aktiv is False
 
-    def test_check_multiple_materials(self, fresh_gamestate):
-        """Test checking multiple material requirements."""
-        gs = copy.deepcopy(fresh_gamestate)
-        gs['Inventar']['Staub'] = 1
-        gs['Inventar']['Wasser'] = 1
-        
-        # Check if we can build Baumaterial (requires Staub and Wasser)
-        item = gs['Werkstatt']['Baumaterial']
-        can_build = True
-        for material, anzahl in item['material'].items():
-            if gs['Inventar'].get(material, 0) < anzahl:
-                can_build = False
-                break
-        
-        assert can_build == True
+    def test_build_refused_with_partial_material(self, game):
+        # Baumaterial needs Staub and Wasser; supply only one of them.
+        rezept = game.GAMESTATE['Werkstatt']['Baumaterial']['material']
+        assert len(rezept) > 1, 'expected a multi-material recipe'
+        first, second = list(rezept)[0], list(rezept)[1]
+        game.GAMESTATE['Inventar'][first] = rezept[first]
+        game.GAMESTATE['Inventar'][second] = 0
+        _start_build(game, 'Baumaterial')
+        assert game.bBauen_aktiv is False
 
-    def test_check_partial_materials(self, fresh_gamestate):
-        """Test when only some materials are available."""
-        gs = copy.deepcopy(fresh_gamestate)
-        gs['Inventar']['Staub'] = 1
-        gs['Inventar']['Wasser'] = 0  # Missing this
-        
-        # Check if we can build Baumaterial
-        item = gs['Werkstatt']['Baumaterial']
-        can_build = True
-        for material, anzahl in item['material'].items():
-            if gs['Inventar'].get(material, 0) < anzahl:
-                can_build = False
-                break
-        
-        assert can_build == False
+    def test_material_is_deducted_on_start(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        kosten = game.GAMESTATE['Werkstatt']['Eisenbarren']['material']['Roheisen']
+        _start_build(game, 'Eisenbarren')
+        assert game.GAMESTATE['Inventar']['Roheisen'] == 10 - kosten
 
+    def test_multi_build_deducts_for_every_item(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        kosten = game.GAMESTATE['Werkstatt']['Eisenbarren']['material']['Roheisen']
+        _set_build_amount(game, 3)
+        _start_build(game, 'Eisenbarren')
+        assert game.iAnzahl_Bauen == 3
+        assert game.GAMESTATE['Inventar']['Roheisen'] == 10 - 3 * kosten
 
-class TestMaterialDeduction:
-    """Tests for material deduction when building starts."""
-
-    def test_deduct_single_material(self, fresh_gamestate):
-        """Test that single material is deducted correctly."""
-        gs = copy.deepcopy(fresh_gamestate)
-        initial_roheisen = 10
-        gs['Inventar']['Roheisen'] = initial_roheisen
-        
-        # Simulate building Eisenbarren
-        item = gs['Werkstatt']['Eisenbarren']
-        for material, anzahl in item['material'].items():
-            gs['Inventar'][material] -= anzahl
-        
-        expected_roheisen = initial_roheisen - item['material']['Roheisen']
-        assert gs['Inventar']['Roheisen'] == expected_roheisen
-
-    def test_deduct_multiple_materials(self, fresh_gamestate):
-        """Test that multiple materials are deducted correctly."""
-        gs = copy.deepcopy(fresh_gamestate)
-        initial_staub = 5
-        initial_wasser = 10
-        gs['Inventar']['Staub'] = initial_staub
-        gs['Inventar']['Wasser'] = initial_wasser
-        
-        # Simulate building Baumaterial
-        item = gs['Werkstatt']['Baumaterial']
-        for material, anzahl in item['material'].items():
-            gs['Inventar'][material] -= anzahl
-        
-        expected_staub = initial_staub - item['material']['Staub']
-        expected_wasser = initial_wasser - item['material']['Wasser']
-        assert gs['Inventar']['Staub'] == expected_staub
-        assert gs['Inventar']['Wasser'] == expected_wasser
-
-
-class TestBuildCompletion:
-    """Tests for build completion and item creation."""
-
-    def test_complete_build_adds_to_inventory(self, fresh_gamestate):
-        """Test that completing a build adds item to inventory."""
-        gs = copy.deepcopy(fresh_gamestate)
-        initial_count = gs['Inventar'].get('Eisenbarren', 0)
-        
-        # Simulate completing Eisenbarren build
-        if 'Eisenbarren' not in gs['Inventar']:
-            gs['Inventar']['Eisenbarren'] = 0
-        gs['Inventar']['Eisenbarren'] += 1
-        
-        assert gs['Inventar']['Eisenbarren'] == initial_count + 1
-
-    def test_complete_spaceship_build_adds_to_raumschiffe(self, fresh_gamestate):
-        """Test that completing spaceship build adds to Raumschiffe."""
-        gs = copy.deepcopy(fresh_gamestate)
-        initial_count = gs['Raumschiffe']['Erde']['Mondlander']['Anzahl']
-        
-        # Simulate completing Mondlander build
-        gs['Raumschiffe']['Erde']['Mondlander']['Anzahl'] += 1
-        
-        assert gs['Raumschiffe']['Erde']['Mondlander']['Anzahl'] == initial_count + 1
-
-    def test_complete_rakete_build(self, fresh_gamestate):
-        """Test completing Rakete build."""
-        gs = copy.deepcopy(fresh_gamestate)
-        initial_count = gs['Raumschiffe']['Erde']['Rakete']['Anzahl']
-        
-        # Simulate completing Rakete build
-        gs['Raumschiffe']['Erde']['Rakete']['Anzahl'] += 1
-        
-        assert gs['Raumschiffe']['Erde']['Rakete']['Anzahl'] == initial_count + 1
-
-
-class TestBuildQueue:
-    """Tests for build queue management."""
-
-    def test_add_to_build_queue(self):
-        """Test adding items to build queue."""
-        bau_queue = []
-        
-        bau_queue.append('Eisenbarren')
-        
-        assert len(bau_queue) == 1
-        assert bau_queue[0] == 'Eisenbarren'
-
-    def test_add_multiple_to_build_queue(self):
-        """Test adding multiple items to build queue."""
-        bau_queue = []
-        
-        bau_queue.append('Eisenbarren')
-        bau_queue.append('Werkzeug')
-        bau_queue.append('Baumaterial')
-        
-        assert len(bau_queue) == 3
-        assert bau_queue == ['Eisenbarren', 'Werkzeug', 'Baumaterial']
-
-    def test_process_build_queue(self):
-        """Test processing items from build queue."""
-        bau_queue = ['Eisenbarren', 'Werkzeug']
-        
-        # Process first item
-        current_build = bau_queue.pop(0)
-        
-        assert current_build == 'Eisenbarren'
-        assert len(bau_queue) == 1
-        assert bau_queue[0] == 'Werkzeug'
-
-    def test_cancel_from_build_queue(self):
-        """Test canceling item from build queue."""
-        bau_queue = ['Eisenbarren', 'Werkzeug', 'Baumaterial']
-        
-        # Cancel first item (storniere)
-        if bau_queue:
-            bau_queue.pop(0)
-        
-        assert len(bau_queue) == 2
-        assert 'Eisenbarren' not in bau_queue
+    def test_multi_build_refused_when_only_one_is_affordable(self, game):
+        kosten = game.GAMESTATE['Werkstatt']['Eisenbarren']['material']['Roheisen']
+        game.GAMESTATE['Inventar']['Roheisen'] = kosten
+        _set_build_amount(game, 3)
+        _start_build(game, 'Eisenbarren')
+        assert game.bBauen_aktiv is False
+        assert game.GAMESTATE['Inventar']['Roheisen'] == kosten, 'material was consumed anyway'
 
 
 class TestBuildDuration:
-    """Tests for build duration calculations."""
+    """iMax_Bauen must never collapse to zero (regression guard)."""
 
-    def test_werkstatt_items_have_duration(self, fresh_gamestate):
-        """Test that all Werkstatt items have duration."""
-        for item_name, item_data in fresh_gamestate['Werkstatt'].items():
-            assert 'dauer' in item_data
-            assert item_data['dauer'] > 0
+    def test_duration_scales_with_amount(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        _set_build_amount(game, 2)
+        _start_build(game, 'Eisenbarren')
+        dauer = game.GAMESTATE['Werkstatt']['Eisenbarren']['dauer']
+        assert game.iMax_Bauen == max(1, int(dauer / config.TICK_MULTIPLIER)) * 2
 
-    def test_complex_items_take_longer(self, fresh_gamestate):
-        """Test that complex items generally take longer to build."""
-        werkstatt = fresh_gamestate['Werkstatt']
-        
-        # Weltraumstation should take longer than Eisenbarren
-        assert werkstatt['Weltraumstation']['dauer'] > werkstatt['Eisenbarren']['dauer']
+    def test_duration_is_at_least_one_tick_per_item(self, game, monkeypatch):
+        # A TICK_MULTIPLIER larger than the recipe duration used to round the
+        # build time down to 0, finishing the build instantly.
+        monkeypatch.setattr(config, 'TICK_MULTIPLIER', 100)
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        _set_build_amount(game, 2)
+        _start_build(game, 'Eisenbarren')
+        assert game.iMax_Bauen >= 2
 
 
-class TestMaterialReturnOnCancel:
-    """Tests for material return when build is canceled."""
+class TestBeendeBauen:
+    """Finishing a build must hand over the items."""
 
-    def test_return_materials_on_cancel(self, fresh_gamestate):
-        """Test that materials are returned when build is canceled."""
-        gs = copy.deepcopy(fresh_gamestate)
-        
-        # Start with materials
-        gs['Inventar']['Roheisen'] = 10
-        
-        # Deduct for building
-        item = gs['Werkstatt']['Eisenbarren']
-        for material, anzahl in item['material'].items():
-            gs['Inventar'][material] -= anzahl
-        
-        # Now cancel and return materials
-        for material, anzahl in item['material'].items():
-            gs['Inventar'][material] += anzahl
-        
-        assert gs['Inventar']['Roheisen'] == 10
+    def test_item_lands_in_inventory(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        before = game.GAMESTATE['Inventar'].get('Eisenbarren', 0)
+        _start_build(game, 'Eisenbarren')
+        game.beende_bauen('Eisenbarren')
+        assert game.GAMESTATE['Inventar']['Eisenbarren'] == before + 1
+        assert game.bBauen_aktiv is False
 
-    def test_return_multiple_materials_on_cancel(self, fresh_gamestate):
-        """Test returning multiple materials on cancel."""
-        gs = copy.deepcopy(fresh_gamestate)
-        
-        # Start with materials
-        gs['Inventar']['Staub'] = 5
-        gs['Inventar']['Wasser'] = 10
-        
-        # Deduct for building Baumaterial
-        item = gs['Werkstatt']['Baumaterial']
-        for material, anzahl in item['material'].items():
-            gs['Inventar'][material] -= anzahl
-        
-        # Verify they were deducted
-        assert gs['Inventar']['Staub'] == 4
-        assert gs['Inventar']['Wasser'] == 9
-        
-        # Now cancel and return materials
-        for material, anzahl in item['material'].items():
-            gs['Inventar'][material] += anzahl
-        
-        assert gs['Inventar']['Staub'] == 5
-        assert gs['Inventar']['Wasser'] == 10
+    def test_multi_build_delivers_every_item(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        before = game.GAMESTATE['Inventar'].get('Eisenbarren', 0)
+        _set_build_amount(game, 3)
+        _start_build(game, 'Eisenbarren')
+        game.beende_bauen('Eisenbarren')
+        assert game.GAMESTATE['Inventar']['Eisenbarren'] == before + 3
+
+    def test_spaceships_go_to_the_fleet_not_the_inventory(self, game):
+        rezept = game.GAMESTATE['Werkstatt']['Mondlander']['material']
+        for material, amount in rezept.items():
+            game.GAMESTATE['Inventar'][material] = amount + 5
+        before = game.GAMESTATE['Raumschiffe']['Erde']['Mondlander']['Anzahl']
+        _start_build(game, 'Mondlander')
+        game.beende_bauen('Mondlander')
+        assert game.GAMESTATE['Raumschiffe']['Erde']['Mondlander']['Anzahl'] == before + 1
+
+    def test_build_is_counted_in_statistics(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        before = game.GAMESTATE['Statistik'].get('gebaute_items', 0)
+        _start_build(game, 'Eisenbarren')
+        game.beende_bauen('Eisenbarren')
+        assert game.GAMESTATE['Statistik']['gebaute_items'] == before + 1
+
+    def test_finishing_the_space_station_wins_the_game(self, game):
+        rezept = game.GAMESTATE['Werkstatt']['Weltraumstation']['material']
+        for material, amount in rezept.items():
+            game.GAMESTATE['Inventar'][material] = amount + 5
+        assert not game.GAMESTATE.get('Spiel_gewonnen')
+        _start_build(game, 'Weltraumstation')
+        game.beende_bauen('Weltraumstation')
+        assert game.GAMESTATE['Spiel_gewonnen'] is True
+
+
+class TestStoppeBauen:
+    """Cancelling must refund the unfinished items and credit the finished ones."""
+
+    def test_cancel_before_any_progress_refunds_everything(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        _start_build(game, 'Eisenbarren')
+        game.iAktueller_Baufortschritt = 0
+        game.stoppe_bauen()
+        assert game.GAMESTATE['Inventar']['Roheisen'] == 10
+        assert game.bBauen_aktiv is False
+
+    def test_cancel_midway_keeps_finished_items_and_refunds_the_rest(self, game):
+        kosten = game.GAMESTATE['Werkstatt']['Eisenbarren']['material']['Roheisen']
+        dauer = game.GAMESTATE['Werkstatt']['Eisenbarren']['dauer']
+        ticks_pro_item = max(1, int(dauer / config.TICK_MULTIPLIER))
+
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        barren_before = game.GAMESTATE['Inventar'].get('Eisenbarren', 0)
+        _set_build_amount(game, 3)
+        _start_build(game, 'Eisenbarren')
+        assert game.GAMESTATE['Inventar']['Roheisen'] == 10 - 3 * kosten
+
+        # Exactly one of the three items is finished.
+        game.iAktueller_Baufortschritt = ticks_pro_item
+        game.stoppe_bauen()
+
+        assert game.GAMESTATE['Inventar']['Eisenbarren'] == barren_before + 1
+        # Two unfinished items -> their material comes back.
+        assert game.GAMESTATE['Inventar']['Roheisen'] == 10 - 3 * kosten + 2 * kosten
+
+    def test_no_material_is_created_or_destroyed_on_cancel(self, game):
+        """Roheisen spent must equal Roheisen embodied in the delivered items."""
+        kosten = game.GAMESTATE['Werkstatt']['Eisenbarren']['material']['Roheisen']
+        dauer = game.GAMESTATE['Werkstatt']['Eisenbarren']['dauer']
+        ticks_pro_item = max(1, int(dauer / config.TICK_MULTIPLIER))
+
+        game.GAMESTATE['Inventar']['Roheisen'] = 20
+        game.GAMESTATE['Inventar']['Eisenbarren'] = 0
+        _set_build_amount(game, 4)
+        _start_build(game, 'Eisenbarren')
+        game.iAktueller_Baufortschritt = 2 * ticks_pro_item
+        game.stoppe_bauen()
+
+        roheisen_spent = 20 - game.GAMESTATE['Inventar']['Roheisen']
+        barren_made = game.GAMESTATE['Inventar']['Eisenbarren']
+        assert roheisen_spent == barren_made * kosten
+
+    def test_cancel_when_nothing_is_building_is_a_no_op(self, game):
+        game.GAMESTATE['Inventar']['Roheisen'] = 10
+        game.bBauen_aktiv = False
+        game.stoppe_bauen()
+        assert game.GAMESTATE['Inventar']['Roheisen'] == 10
+
+
+class TestBerechneRohstoffe:
+    """berechne_rohstoffe() resolves a recipe down to raw materials."""
+
+    def test_direct_recipe(self, game):
+        rohstoffe = game.berechne_rohstoffe('Eisenbarren')
+        assert rohstoffe['Roheisen'] == (
+            game.GAMESTATE['Werkstatt']['Eisenbarren']['material']['Roheisen'])
+
+    def test_amount_scales_linearly(self, game):
+        one = game.berechne_rohstoffe('Eisenbarren', 1)
+        three = game.berechne_rohstoffe('Eisenbarren', 3)
+        for material, amount in one.items():
+            assert three[material] == amount * 3
+
+    def test_nested_recipe_resolves_to_raw_materials(self, game):
+        """Werkzeug is made from Eisenbarren, which is made from Roheisen."""
+        rohstoffe = game.berechne_rohstoffe('Werkzeug')
+        assert 'Roheisen' in rohstoffe, rohstoffe
+        assert rohstoffe['Roheisen'] > 0
+
+    def test_raw_material_is_returned_as_itself(self, game):
+        rohstoffe = game.berechne_rohstoffe('Roheisen', 5)
+        assert rohstoffe == {'Roheisen': 5}
