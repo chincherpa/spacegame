@@ -32,7 +32,6 @@ SCIENCE = {
     'erforschbar nach': 'Treibstoff',
     'Sitzplätze': 0,
     'Frachtplätze': 0,
-    'Kosten Forschungspunkte': 5,
     'dauer': 8,
     'reichweite': 10,
     'kosten': 10,
@@ -43,7 +42,6 @@ SCIENCE = {
     'erforschbar nach': 'Raumsonde',
     'Sitzplätze': 2,
     'Frachtplätze': 3,
-    'Kosten Forschungspunkte': 10,
     'dauer': 10,
     'reichweite': 1,
     'kosten': 10,
@@ -54,24 +52,22 @@ SCIENCE = {
     'erforschbar nach': 'Mondlander',
     'Sitzplätze': 5,
     'Frachtplätze': 6,
-    'Kosten Forschungspunkte': 20,
     'dauer': 20,
     'reichweite': 10,
-    'kosten': 2000,
+    'kosten': 35,
   },
 
   'Mondbasen Bauplan': {
     'beschreibung': 'Erforsche den Entwurf von Mondbasen. Mit dem Bauplan kannst du in der Werkstatt detaillierte Konstruktionspläne herstellen, die für den Bau einer Weltraumstation benötigt werden.',
     'erforschbar nach': 'Rakete',
-    'Kosten Forschungspunkte': 15,
     'dauer': 10,
-    'kosten': 20,
+    'kosten': 50,
   },
 
   'Weltraumstation': {
     'beschreibung': 'Erforsche den Bau einer Weltraumstation.',
     'erforschbar nach': 'Mondbasen Bauplan',
     'dauer': 50,
-    'kosten': 5000,
+    'kosten': 80,
   },
 }

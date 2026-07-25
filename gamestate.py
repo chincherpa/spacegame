@@ -82,7 +82,7 @@ GAMESTATE = {
 
   'Werkstatt': {
     'Baumaterial': {
-      'beschreibung': 'Text Beschreibung Baumaterial',
+      'beschreibung': 'Baumaterial aus Staub und Wasser. Grundstoff für Konstruktionen und Missionen.',
       'dauer': 2,
       'material': {
         'Staub': 1,
@@ -90,22 +90,30 @@ GAMESTATE = {
       },
     },
     'Eisenbarren': {
-      'beschreibung': 'Text Beschreibung Eisenbarren',
+      'beschreibung': 'Aus Roheisen geschmolzene Barren - Grundlage für Werkzeug und alle Raumschiffe.',
       'dauer': 2,
       'material': {
         'Roheisen': 1
       },
     },
     'Werkzeug': {
-      'beschreibung': 'Text Beschreibung Eisenbarren',
+      'beschreibung': 'Werkzeug für komplexe Konstruktionen, Missionen und Mining.',
       'dauer': 2,
       'material': {
         'Eisenbarren': 1,
         'Wasser': 1
       },
     },
+    'Treibstoff': {
+      'beschreibung': 'Treibstoff für Raumschiffe. Jede Reise verbraucht Treibstoff abhängig von der Entfernung.',
+      'dauer': 2,
+      'material': {
+        'Wasser': 2,
+        'Eisenbarren': 1
+      },
+    },
     'Raumsonde': {
-      'beschreibung': 'Text Beschreibung Raumsonde',
+      'beschreibung': 'Unbemannte Sonde. Im HQ gestartet entdeckt sie den Mond und danach den Mars.',
       'dauer': 2,
       'material': {
         'Eisenbarren': 5,
@@ -113,7 +121,7 @@ GAMESTATE = {
       },
     },
     'Mondlander': {
-      'beschreibung': 'Text Beschreibung Mondlander',
+      'beschreibung': 'Kleines Landefahrzeug mit Reichweite 1 - bringt Astronauten und Fracht zum Mond.',
       'dauer': 2,
       'material': {
         'Eisenbarren': 10,
@@ -121,7 +129,7 @@ GAMESTATE = {
       },
     },
     'Rakete': {
-      'beschreibung': 'Text Beschreibung Rakete',
+      'beschreibung': 'Grosses Raumschiff mit hoher Reichweite - erreicht auch den Mars.',
       'dauer': 2,
       'material': {
         'Eisenbarren': 30,
@@ -138,12 +146,13 @@ GAMESTATE = {
       },
     },
     'Weltraumstation': {
-      'beschreibung': 'Text Beschreibung Weltraumstation',
+      'beschreibung': 'Das Ziel des Spiels. Verbraucht 5 Mondlander von der Erde sowie den Mondbasen Bauplan.',
       'dauer': 10,
       'material': {
         'Mondlander': 5,
         'Eisenbarren': 100,
-        'Werkzeug': 10
+        'Werkzeug': 10,
+        'Mondbasen Bauplan': 1
       },
     },
   },
@@ -156,7 +165,8 @@ GAMESTATE = {
     'Staub': 5,          # Für Baumaterial
     'Gold': 0,
     'Werkzeug': 0,
-    'Wasser': 10,        # Für Produktion
+    'Wasser': 10,        # Für Produktion und Lebenserhaltung
+    'Treibstoff': 0,     # Für Reisen
     'Raumsonde': 0,
     # Mondmission-Belohnungen
     'Mondgestein': 0,
@@ -226,4 +236,25 @@ GAMESTATE = {
   'AktiveReisen': [],
   'AktiveRaumsonde': None,
   'Spiel_gewonnen': False,
+
+  # Freigeschaltete Erfolge (Liste von Keys aus achievements.ERFOLGE)
+  'Erfolge': [],
+
+  # Lebenslange Zähler, siehe achievements.STATISTIK_FELDER
+  'Statistik': {
+    'jobs_abgeschlossen': 0,
+    'forschungen_abgeschlossen': 0,
+    'gebaute_items': 0,
+    'reisen_abgeschlossen': 0,
+    'missionen_abgeschlossen': 0,
+    'mining_abgeschlossen': 0,
+    'sonden_gestartet': 0,
+    'credits_verdient': 0,
+    'credits_ausgegeben': 0,
+    'materialien_verkauft': 0,
+    'reiseereignisse': 0,
+  },
+
+  # Wurde die Einführung schon gezeigt?
+  'Tutorial_gezeigt': False,
 }

@@ -14,15 +14,29 @@ Erledigt:
   - Reisen/Raumsonde/Missionen werden gespeichert und wiederhergestellt
   - Siegbedingung: Weltraumstation bauen = Spiel gewonnen
   - Tabs/UI schalten sich bei Entdeckung ohne Neustart frei
+  - Weltraumstation ist tatsächlich baubar (Mondlander aus dem Raumschiff-Bestand)
+  - Treibstoff hat ein Werkstatt-Rezept
+  - Reisen: Treibstoffverbrauch und Lebenserhaltung
+  - Reisen: Zufallsereignisse (Pannen, Funde, Sonnenwind)
+  - Shop: Materialien verkaufen
+  - Wirtschaft neu ausbalanciert (Missions- und Forschungskosten)
+  - Mehrere Speicherslots (3 Slots mit Übersicht)
+  - Tutorial: "Nächstes Ziel" im HQ + Kurzanleitung + Hilfe pro Tab
+  - Erfolge und Statistik
+  - Neue Materialien erscheinen sofort im Inventar
 
 Mittel:
-  - Reisen: Zufallsereignisse (Pannen, Entdeckungen)
-  - Reisen: Treibstoffverbrauch und Lebenserhaltung
+  - Mining/Missionen: mehr Belohnungsvielfalt, verkettete Missionen
+  - Mondstation_Modul und Kommunikations_Upgrade mit echter Wirkung versehen
+    (Lebenserhaltung_Upgrade senkt bereits den Wasserbedarf auf Reisen)
+  - Rückflug-Warnung, wenn Astronauten ohne Treibstoff auf einem Planeten stranden
 
 Groß:
-  - Mehrere Speicherslots
-  - Tutorial
+  - Astronauten-Management (Erfahrung, Skills, Namen)
+  - Mars-Basis mit eigenen Missionen
+  - main.py entflechten: die Module core/ und ui/ existieren bereits,
+    werden aber von main.py nicht benutzt (nur von den Tests)
 
 Sehr groß / Konzept:
-  - Astronauten-Management (Erfahrung, Skills)
-  - Zufallsereignisse (Meteore, Pannen)
+  - Weitere Planeten und ein größeres Sonnensystem
+  - Zufallsereignisse außerhalb von Reisen (Meteore, Pannen in der Basis)
