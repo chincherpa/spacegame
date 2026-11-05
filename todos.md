@@ -24,6 +24,9 @@ Erledigt:
   - Tutorial: "Nächstes Ziel" im HQ + Kurzanleitung + Hilfe pro Tab
   - Erfolge und Statistik
   - Neue Materialien erscheinen sofort im Inventar
+  - UI-Politur: Logbuch sichtbar, Statusleiste sofort aktuell (inkl. freie
+    Arbeiter), lesbare Akzentfarben, helle Tab-Icons + eigenes Arbeit-Icon,
+    Text-Fortschrittsbalken, Planeten-Infos, Tastenkürzel (Strg+S, F1)
 
 Mittel:
   - Mining/Missionen: mehr Belohnungsvielfalt, verkettete Missionen
