@@ -244,7 +244,8 @@ HILFE_ALLGEMEIN = (
     'Es wird automatisch gespeichert; über "File" kannst du zusätzlich in drei '
     'Slots speichern und laden.\n\n'
     'Tipp: Die Anzeige "Nächstes Ziel" im HQ sagt dir jederzeit, was als '
-    'Nächstes ansteht.'
+    'Nächstes ansteht.\n\n'
+    'Tastenkürzel: Strg+S speichert in Slot 1, F1 zeigt die Hilfe zum aktuellen Tab.'
 )
 
 

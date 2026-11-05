@@ -10,7 +10,7 @@ Organized by category for easy reference.
 # =============================================================================
 
 TITLE = "Spacegame"
-WINDOW_SIZE = (900, 660)
+WINDOW_SIZE = (980, 740)
 WINDOW_READ_TIMEOUT = 100  # milliseconds between window reads
 
 # =============================================================================
