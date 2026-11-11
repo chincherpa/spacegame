@@ -146,13 +146,14 @@ GAMESTATE = {
       },
     },
     'Weltraumstation': {
-      'beschreibung': 'Das Ziel des Spiels. Verbraucht 5 Mondlander von der Erde sowie den Mondbasen Bauplan.',
+      'beschreibung': 'Das Ziel des Spiels. Verbraucht 5 Mondlander von der Erde, den Mondbasen Bauplan und Gold vom Mars.',
       'dauer': 10,
       'material': {
         'Mondlander': 5,
         'Eisenbarren': 100,
         'Werkzeug': 10,
-        'Mondbasen Bauplan': 1
+        'Mondbasen Bauplan': 1,
+        'Gold': 3,
       },
     },
   },
@@ -231,6 +232,19 @@ GAMESTATE = {
       }
   },
 
+  # Material, das per Fracht auf einen Planeten gebracht wurde. Missionen und
+  # Mining verbrauchen ihr Material aus dem Lager des jeweiligen Planeten.
+  'Lager': {
+    'Mond': {},
+    'Mars': {},
+  },
+
+  # Laufende Vorgänge (werden mitgespeichert)
+  'AktiveForschung': None,   # {'name': ..., 'fortschritt': ...}
+  'ForschungsQueue': [],
+  'AktiverBau': None,        # {'name': ..., 'anzahl': ..., 'fortschritt': ...}
+  'BauQueue': [],            # [{'name': ..., 'anzahl': ...}]
+  'AktiveErdJobs': [],       # [{'name': ..., 'fortschritt': ...}]
   'AktivesMining': [],
   'AktiveMissionen': [],
   'AktiveReisen': [],

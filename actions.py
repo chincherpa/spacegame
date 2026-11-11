@@ -1,3 +1,12 @@
+"""Mondmissionen.
+
+Schlüssel mit dem Präfix 'benötigt_' sind Voraussetzungen: 'benötigt_astronauten'
+bindet Astronauten auf dem Mond, alle anderen nennen ein Material (klein
+geschrieben), das aus dem Mond-Lager verbraucht wird. 'voraussetzung' listet
+Missionen, die vorher abgeschlossen sein müssen. Ob eine Mission abgeschlossen
+ist, steht im Spielstand unter 'Mondmissionen'.
+"""
+
 ACTIONS = {
       'Erkundung und Probenentnahme': {
           'beschreibung': 'Sammeln von Mondgestein und Proben zur Untersuchung der geologischen Beschaffenheit des Mondes',
@@ -5,7 +14,6 @@ ACTIONS = {
           'kosten': 60,
           'benötigt_astronauten': 2,
           'benötigt_werkzeug': 1,
-          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 20,
               'Mondgestein': 5,
@@ -13,13 +21,13 @@ ACTIONS = {
           }
       },
       'Konstruktion und Reparatur von Strukturen': {
+          'voraussetzung': ['Navigation und Anpassung an die geringere Schwerkraft'],
           'beschreibung': 'Aufbau oder Reparatur von Strukturen auf dem Mond, um die Herausforderungen des Lebens und der Arbeit im Weltraum zu simulieren',
           'dauer': 4,
           'kosten': 90,
           'benötigt_astronauten': 3,
           'benötigt_werkzeug': 2,
           'benötigt_baumaterial': 3,
-          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 30,
               'Credits': 200,
@@ -31,7 +39,6 @@ ACTIONS = {
           'dauer': 2,
           'kosten': 50,
           'benötigt_astronauten': 1,
-          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 15,
               'Credits': 110,
@@ -39,12 +46,12 @@ ACTIONS = {
           }
       },
       'Geologische Untersuchungen': {
+          'voraussetzung': ['Erkundung und Probenentnahme'],
           'beschreibung': 'Untersuchung geologischer Formationen auf dem Mond zur Entdeckung von Einblicken in die Mondoberfläche und ihre Entstehungsgeschichte',
           'dauer': 3,
           'kosten': 70,
           'benötigt_astronauten': 2,
           'benötigt_werkzeug': 1,
-          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 25,
               'Mondgestein': 8,
@@ -53,12 +60,12 @@ ACTIONS = {
           }
       },
       'Lebenserhaltungssysteme': {
+          'voraussetzung': ['Konstruktion und Reparatur von Strukturen'],
           'beschreibung': 'Planung, Wartung und Reparatur von Lebenserhaltungssystemen auf dem Mond',
           'dauer': 4,
           'kosten': 100,
           'benötigt_astronauten': 3,
           'benötigt_werkzeug': 2,
-          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 35,
               'Credits': 200,
@@ -71,7 +78,6 @@ ACTIONS = {
           'kosten': 60,
           'benötigt_astronauten': 2,
           'benötigt_werkzeug': 1,
-          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 20,
               'Credits': 140,
@@ -84,7 +90,6 @@ ACTIONS = {
           'kosten': 60,
           'benötigt_astronauten': 2,
           'benötigt_werkzeug': 1,
-          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 25,
               'Credits': 160,
@@ -92,13 +97,13 @@ ACTIONS = {
           }
       },
       'Mondbasen-Design': {
+          'voraussetzung': ['Konstruktion und Reparatur von Strukturen', 'Geologische Untersuchungen'],
           'beschreibung': 'Design, Standortauswahl und Ressourcenmanagement für den Aufbau von Mondbasen',
           'dauer': 5,
           'kosten': 150,
           'benötigt_astronauten': 4,
           'benötigt_werkzeug': 3,
           'benötigt_baumaterial': 5,
-          'erforscht': False,
           'belohnung': {
               'Forschungspunkte': 50,
               'Credits': 400,

@@ -2,6 +2,27 @@
 
 Stand: Commit `0cd6ddd` (Branch `ccr-44f99259-lhgtp3`), 10.11.2026
 
+## Stand der Behebung (11.11.2026)
+
+| Befund | Stand |
+|---|---|
+| H1, H2 | Behoben: laufender Auftrag in `sLaufende_Forschung` / `sLaufender_Bau`, getrennt von der Auswahl |
+| H3 | Behoben: `aktiver_slot`, Autosave und Beenden schreiben dorthin |
+| H4 | Behoben: laufende Forschung, Bau, beide Warteschlangen und Erd-Jobs werden gespeichert |
+| H5 | Behoben: negative Mengen abgelehnt, Spinner nur noch per Pfeil bedienbar |
+| M1, M2 | Behoben: Mining und Missionen binden Astronauten, Slot-Limit gilt, Gebundene können nicht abreisen |
+| M3 | Behoben: Button "In Queue stellen" mit Stückzahl |
+| M4 | Behoben: Shop liest die Schiffsdaten aus `science.py` |
+| M5 | Behoben: `main.py` ist importierbar, Tests laufen gegen die echte Logik (`tests/test_spiel.py`, `tests/test_durchspielen.py`) |
+| M6 | Behoben: `core/`, `ui/`, `data/` und die Tests auf Kopien entfernt, unbenutzte Konfiguration gelöscht |
+| M7 | Behoben: Rezepte und Entfernungen kommen beim Laden immer aus dem Code; Missionsabschluss steht nur noch im Spielstand |
+| M8 | Behoben: atomares Schreiben, unlesbare Datei wird nach `*.beschaedigt` verschoben |
+| M9 | Behoben: `savefile*.json` ist ignoriert und aus dem Repo entfernt |
+| Niedrig | Behoben bis auf: uneinheitliche Einrückung und Benennung in `main.py`, `shipnames.py` (unbenutzt, für Astronauten-Namen vorgesehen) |
+| Fracht ohne Funktion | Behoben: Fracht landet im Lager des Zielplaneten und versorgt dort Missionen und Mining |
+
+Die Zeilennummern unten beziehen sich auf den Stand vor der Behebung (Commit `0cd6ddd`).
+
 ## Umfang und Methode
 
 - Gelesen: `main.py` komplett, alle Daten- und Logikmodule (`gamestate.py`, `science.py`, `actions.py`, `mining.py`, `shop.py`, `travel_rules.py`, `saveslots.py`, `achievements.py`, `config.py`, `materials.py`), `core/` und `ui/` sowie Stichproben aus `tests/`.

@@ -114,11 +114,30 @@ def slot_beschriftung(info):
 
 
 def speichere_slot(slot, gamestate):
-    """Schreibt einen Spielstand in einen Slot."""
+    """Schreibt einen Spielstand in einen Slot.
+
+    Geschrieben wird zuerst in eine temporäre Datei, die dann die alte ersetzt.
+    Ein Absturz mitten im Schreiben lässt so den bisherigen Spielstand intakt.
+    """
     datei = slot_datei(slot)
-    with open(datei, 'w', encoding='utf-8') as fh:
+    temp = f'{datei}.tmp'
+    with open(temp, 'w', encoding='utf-8') as fh:
         json.dump(gamestate, fh, indent=2, ensure_ascii=False)
+    os.replace(temp, datei)
     return datei
+
+
+def sichere_beschaedigten_slot(slot):
+    """Benennt eine unlesbare Slot-Datei um, damit sie nicht überschrieben wird.
+
+    Rückgabe: Name der Sicherungsdatei oder None, wenn der Slot leer oder lesbar ist.
+    """
+    if not slot_info(slot)['beschaedigt']:
+        return None
+    datei = slot_datei(slot)
+    sicherung = f'{datei}.beschaedigt'
+    os.replace(datei, sicherung)
+    return sicherung
 
 
 def lade_slot(slot):

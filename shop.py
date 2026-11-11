@@ -1,18 +1,8 @@
+# Raumschiffe im Shop. Sitzplätze, Frachtplätze und Reichweite stehen in
+# science.SCIENCE - dort liest sie auch die Reiselogik.
 SHOP = {
-  'Mondlander': {
-    'Kosten': 150,
-    'Sitze': 2,
-    'Frachtplätze': 3,
-    'Reichweite': 1,
-    'Tank': 1,
-  },
-  'Rakete': {
-    'Kosten': 500,
-    'Sitze': 5,
-    'Frachtplätze': 10,
-    'Reichweite': 5,
-    'Tank': 5,
-  },
+  'Mondlander': {'Kosten': 150},
+  'Rakete': {'Kosten': 500},
 }
 
 # Materialien, die im Shop gegen Credits gekauft werden können
@@ -57,12 +47,12 @@ VERKAUFSPREISE = {
   'Mondgestein': 40,
   'Seltene_Mineralien': 90,
   'Gold': 150,
-  'Mondstation_Modul': 120,
-  'Raumsonde': 200,
+  'Raumsonde': 60,
 }
 
 # Fortschrittsrelevante Gegenstände sollen nicht versehentlich verkauft werden.
 NICHT_VERKAUFBAR = {
+  'Mondstation_Modul',
   'Mondbasen Bauplan',
   'Lebenserhaltung_Upgrade',
   'Kommunikations_Upgrade',
