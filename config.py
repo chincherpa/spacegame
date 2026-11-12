@@ -44,7 +44,8 @@ PROBE_DATA_RESEARCH_POINTS = 15
 # =============================================================================
 
 # Jedes Kommunikations_Upgrade liefert zusätzliche Forschungspunkte pro Intervall
-COMM_UPGRADE_SCIENCE_POINTS = 1
+# (10 Punkte in 20 Zyklen entsprechen etwa einem Arbeiter in Laborarbeit)
+COMM_UPGRADE_SCIENCE_POINTS = 10
 # Jedes Mondstation_Modul verkürzt Mond-Expeditionen (nie unter MINING_MIN_DAUER)
 MOON_MODULE_MINING_TICKS = 1
 MINING_MIN_DAUER = 2

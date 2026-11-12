@@ -48,7 +48,7 @@ MATERIALS = {
     'benötigt für': []
     },
   'Mondgestein': {
-    'Beschreibung': 'Proben vom Mond - für den Mondbasen Bauplan oder zum Verkauf',
+    'Beschreibung': 'Proben vom Mond - für den Mondbasen Bauplan oder zum Verkauf (von der Erde aus)',
     'benötigt für': []
     },
   'Seltene_Mineralien': {

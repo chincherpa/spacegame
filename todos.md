@@ -39,6 +39,13 @@ Erledigt:
   - "Neues Spiel" im Menü
   - Tests laufen gegen die echte Spiellogik; ein Bot spielt bis zum Sieg durch
   - core/ und ui/ entfernt (ungenutzter, veralteter Zweitentwurf)
+  - Planetenlager in beide Richtungen: Erträge von Missionen und Mining liegen im
+    Lager vor Ort, Abflüge verbrauchen Treibstoff und Wasser von dort
+  - Mehr Frachtplätze (Mondlander 6, Rakete 12) und mehr Frachtgüter
+  - Erd-Jobs lassen sich automatisch wiederholen
+  - Spiel startet mit dem zuletzt benutzten Slot
+  - Bau-Warteschlange zeigt, worauf der vorderste Auftrag wartet
+  - Kein Fehler-Popup mehr beim Schliessen über das X
 
 Ideen für später:
   - Astronauten-Management (Erfahrung pro Person, Skills, Namen aus shipnames.py)

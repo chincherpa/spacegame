@@ -19,8 +19,10 @@ FreeSimpleGUI braucht tkinter. Unter Debian/Ubuntu: `sudo apt-get install python
 3. **Werkstatt**: Vom Eisenbarren bis zur Rakete. Aufträge lassen sich einreihen.
 4. **Raumsonde**: Im HQ gestartet entdeckt sie erst den Mond, dann den Mars.
 5. **Reisen**: Raumschiffe bringen Astronauten und Fracht zu den Planeten.
-   Fracht landet im Lager des Ziels und versorgt dort Missionen und Mining.
+   Fracht landet im Lager des Ziels und versorgt dort Missionen, Mining und
+   den Rückflug (Treibstoff, Wasser).
 6. **Mondmissionen und Mining**: bringen Credits, Mondgestein und dauerhafte Upgrades.
+   Abgebaute Güter liegen im Lager vor Ort und müssen zur Erde geflogen werden.
 7. **Mars**: Nur dort gibt es das Gold für die Weltraumstation.
 8. **Weltraumstation** bauen: gewonnen.
 
@@ -30,7 +32,8 @@ durch das Spiel, F1 zeigt die Hilfe zum aktuellen Tab.
 ## Speichern
 
 Drei Slots über das Menü "File". Autosave und Beenden schreiben in den aktiven
-Slot, also den zuletzt geladenen oder gespeicherten. Laufende Forschung,
+Slot, also den zuletzt geladenen oder gespeicherten; mit ihm startet das Spiel
+auch beim nächsten Mal. Laufende Forschung,
 Bauaufträge, Reisen und Missionen werden mitgespeichert. Strg+S speichert sofort.
 
 ## Aufbau

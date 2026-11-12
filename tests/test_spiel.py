@@ -137,6 +137,7 @@ class TestWerkstatt:
         spiel.bauauftrag_hinzufuegen('Werkzeug', 1)   # braucht Eisenbarren
         ticks(spiel, 2)
         assert not spiel.bBauen_aktiv and len(spiel.bau_queue) == 1
+        assert 'wartet auf Eisenbarren' in spiel.window['bau_queue_anzeige'].get()
         inventar(spiel)['Eisenbarren'] = 1
         ticks(spiel, 1)
         assert spiel.sLaufender_Bau == 'Werkzeug'
@@ -174,6 +175,29 @@ class TestSpeichern:
         assert spiel.verarbeite_event(None, None) is False
         assert saveslots.lade_slot(3)['Credits'] == 42
         assert saveslots.lade_slot(1) is None
+
+    def test_beenden_fasst_das_geschlossene_fenster_nicht_an(self, spiel):
+        """Nach dem Klick auf das X meldet FreeSimpleGUI jeden Zugriff als Fehler."""
+        status = spiel.window['save_status']
+
+        def verboten(*args, **kwargs):
+            raise AssertionError('Fenster ist geschlossen')
+        status.update = verboten
+        assert spiel.verarbeite_event(None, None) is False
+        assert saveslots.lade_slot(1) is not None
+
+    def test_naechster_start_laedt_den_zuletzt_benutzten_slot(self, spiel):
+        import sys
+        spiel.iCredits = 321
+        spiel.dump_gamestate(2)
+        assert saveslots.gemerkter_slot() == 2
+        sys.modules.pop('main')
+        import main
+        assert main.aktiver_slot == 2 and main.iCredits == 321
+
+    def test_gemerkter_slot_ohne_spielstand_faellt_auf_slot_1(self, spiel):
+        saveslots.merke_slot(3)
+        assert saveslots.gemerkter_slot() == 1
 
     def test_laufende_forschung_und_bau_ueberleben_das_laden(self, spiel):
         erforsche_alles(spiel)
@@ -281,17 +305,51 @@ class TestReisen:
 
     def test_rueckfracht_kommt_aus_dem_lager(self, spiel):
         bereite_flug_vor(spiel)
-        spiel.starte_reise('Mondlander', 'Erde', 'Mond', 2, {'Werkzeug': 2})
+        spiel.starte_reise('Mondlander', 'Erde', 'Mond', 2, {'Werkzeug': 2, 'Treibstoff': 1, 'Wasser': 2})
         ticks(spiel, 1)
         assert not spiel.starte_reise('Mondlander', 'Mond', 'Erde', 0, {'Werkzeug': 3})
         assert spiel.starte_reise('Mondlander', 'Mond', 'Erde', 2, {'Werkzeug': 2})
         ticks(spiel, 1)
-        assert spiel.GAMESTATE['Lager']['Mond']['Werkzeug'] == 0
+        assert spiel.GAMESTATE['Lager']['Mond'] == {'Werkzeug': 0, 'Treibstoff': 0, 'Wasser': 0}
         assert inventar(spiel)['Werkzeug'] == 5
+
+    def test_rueckflug_verbraucht_treibstoff_aus_dem_lager_vor_ort(self, spiel):
+        bereite_flug_vor(spiel)
+        spiel.starte_reise('Mondlander', 'Erde', 'Mond', 0, {})
+        ticks(spiel, 1)
+        # Treibstoff auf der Erde hilft dem Schiff auf dem Mond nicht
+        assert not spiel.starte_reise('Mondlander', 'Mond', 'Erde', 0, {})
+        spiel.GAMESTATE['Lager']['Mond']['Treibstoff'] = 1
+        erde_vorher = inventar(spiel)['Treibstoff']
+        assert spiel.starte_reise('Mondlander', 'Mond', 'Erde', 0, {})
+        assert spiel.GAMESTATE['Lager']['Mond']['Treibstoff'] == 0
+        assert inventar(spiel)['Treibstoff'] == erde_vorher
+
+    def test_ertrag_muss_zur_erde_geflogen_werden(self, spiel):
+        bereite_flug_vor(spiel)
+        spiel.starte_reise('Mondlander', 'Erde', 'Mond', 2, {'Werkzeug': 1, 'Treibstoff': 1})
+        ticks(spiel, 1)
+        spiel.starte_mining('Mond')
+        ticks(spiel, 4)
+        assert spiel.GAMESTATE['Lager']['Mond']['Mondgestein'] == 4
+        assert inventar(spiel)['Mondgestein'] == 0
+        assert spiel.starte_reise('Mondlander', 'Mond', 'Erde', 0, {'Mondgestein': 4})
+        ticks(spiel, 1)
+        assert inventar(spiel)['Mondgestein'] == 4
+        assert spiel.GAMESTATE['Lager']['Mond']['Mondgestein'] == 0
+
+    def test_reiseereignis_trifft_den_vorrat_am_ziel(self, spiel):
+        bereite_flug_vor(spiel)
+        spiel.starte_reise('Mondlander', 'Erde', 'Mond', 0, {'Treibstoff': 1})
+        erde_vorher = dict(inventar(spiel))
+        spiel.aktive_reisen[0].ereignis = {'name': 'Test', 'material': {'Staub': 3, 'Treibstoff': -1}}
+        ticks(spiel, 1)
+        assert spiel.GAMESTATE['Lager']['Mond'] == {'Treibstoff': 0, 'Staub': 3}
+        assert inventar(spiel) == erde_vorher
 
     def test_gebundene_astronauten_koennen_nicht_abreisen(self, spiel):
         bereite_flug_vor(spiel)
-        spiel.starte_reise('Mondlander', 'Erde', 'Mond', 2, {'Werkzeug': 1})
+        spiel.starte_reise('Mondlander', 'Erde', 'Mond', 2, {'Werkzeug': 1, 'Treibstoff': 1, 'Wasser': 2})
         ticks(spiel, 1)
         assert spiel.starte_mining('Mond')
         assert not spiel.starte_reise('Mondlander', 'Mond', 'Erde', 1, {})
@@ -303,14 +361,29 @@ class TestReisen:
 
     def test_rueckflug_warnung(self, spiel):
         bereite_flug_vor(spiel)
-        inventar(spiel)['Treibstoff'] = 1
         werte = {'reise_von_Erde': True, 'reise_zu_Mond': True, 'reise_raumschiff_Mondlander': True,
                  'reise_astronauten': 1}
         spiel.verarbeite_event('reise_astronauten', werte)
         assert 'Rückflug' in spiel.window['reise_info'].get()
-        inventar(spiel)['Treibstoff'] = 2
+        # Treibstoff als Fracht deckt den Rückflug ...
+        spiel.verarbeite_event('fracht_Treibstoff', {**werte, 'fracht_Treibstoff': 1})
+        assert 'Rückflug' not in spiel.window['reise_info'].get()
+        # ... ebenso Treibstoff, der schon im Mond-Lager liegt
+        spiel.GAMESTATE['Lager']['Mond']['Treibstoff'] = 1
         spiel.verarbeite_event('reise_astronauten', werte)
         assert 'Rückflug' not in spiel.window['reise_info'].get()
+
+    def test_fracht_auswahl_folgt_dem_vorrat(self, spiel):
+        bereite_flug_vor(spiel)
+        spiel.verarbeite_event('reise_von_Erde', {'reise_von_Erde': True})
+        assert spiel.window['fracht_Werkzeug'].kwargs['values'] == list(range(6))
+        inventar(spiel)['Werkzeug'] = 8          # z.B. ein fertiger Bau
+        ticks(spiel, 1)
+        assert spiel.window['fracht_Werkzeug'].kwargs['values'] == list(range(9))
+        spiel.GAMESTATE['Lager']['Mond']['Gold'] = 2
+        spiel.verarbeite_event('reise_von_Mond', {'reise_von_Mond': True})
+        assert spiel.window['fracht_Gold'].kwargs['values'] == [0, 1, 2]
+        assert spiel.window['fracht_Werkzeug'].kwargs['values'] == [0]
 
     def test_reise_ueberlebt_speichern_und_laden(self, spiel):
         bereite_flug_vor(spiel, 'Rakete')
@@ -364,8 +437,9 @@ class TestMining:
         assert spiel.GAMESTATE['Lager']['Mars'] == {'Werkzeug': 2, 'Baumaterial': 2}
         spiel.verarbeite_event('mining_starte_Mars', {})
         ticks(spiel, 6)
-        assert inventar(spiel)['Gold'] == 1
-        assert inventar(spiel)['Roheisen'] == 18
+        mars = spiel.GAMESTATE['Lager']['Mars']
+        assert mars['Gold'] == 1 and mars['Roheisen'] == 8
+        assert inventar(spiel)['Gold'] == 0 and inventar(spiel)['Roheisen'] == 10
         assert spiel.mining_aktiv == []
 
     def test_erfahrung_und_modul_wirken(self, spiel):
@@ -376,7 +450,7 @@ class TestMining:
         assert spiel.mining_dauer('Mars') == 6
         spiel.starte_mining('Mond')
         ticks(spiel, 3)
-        assert inventar(spiel)['Mondgestein'] == 7
+        assert spiel.GAMESTATE['Lager']['Mond']['Mondgestein'] == 7
 
 
 class TestMondmissionen:
@@ -393,7 +467,8 @@ class TestMondmissionen:
         assert spiel.GAMESTATE['Lager']['Mond']['Werkzeug'] == 0
         ticks(spiel, 3)
         assert spiel.mission_abgeschlossen(self.ERKUNDUNG)
-        assert inventar(spiel)['Mondgestein'] == 5
+        assert spiel.GAMESTATE['Lager']['Mond']['Mondgestein'] == 5
+        assert inventar(spiel)['Mondgestein'] == 0
         assert spiel.iCredits == 40 + 140 + 100     # Belohnung + Erfolg 'Fussabdruck'
         assert not spiel.starte_mondmission(self.ERKUNDUNG)   # nur einmal
 
@@ -419,6 +494,14 @@ class TestMondmissionen:
         assert spiel.starte_mondmission(self.ERKUNDUNG)       # bindet 2
         assert not spiel.starte_mining('Mond')                # braucht 2, frei ist 1
         assert spiel.freie_astronauten('Mond') == 1
+
+    def test_upgrades_wirken_sofort_und_liegen_nicht_im_lager(self, spiel):
+        astronauten_auf(spiel, 'Mond', 1)
+        spiel.iCredits = 100
+        assert spiel.starte_mondmission('Navigation und Anpassung an die geringere Schwerkraft')
+        ticks(spiel, 2)
+        assert inventar(spiel)['Astronaut_Erfahrung'] == 1
+        assert 'Astronaut_Erfahrung' not in spiel.GAMESTATE['Lager']['Mond']
 
     def test_abschluss_ueberlebt_neuen_spielstand(self, spiel):
         """Der Abschluss steht im Spielstand, nicht in den Moduldaten."""
@@ -492,6 +575,21 @@ class TestShopUndUI:
         assert not spiel.starte_erde_job('Laborarbeit')
         ticks(spiel, 2)
         assert inventar(spiel)['Roheisen'] == 25
+        assert spiel.erde_jobs_aktiv == []
+
+    def test_erd_jobs_wiederholen_sich_auf_wunsch(self, spiel):
+        spiel.verarbeite_event('erde_jobs_wiederholen', {'erde_jobs_wiederholen': True})
+        assert spiel.starte_erde_job('Bergbau')
+        ticks(spiel, 6)
+        assert inventar(spiel)['Roheisen'] == 10 + 3 * 3
+        assert [j.name for j in spiel.erde_jobs_aktiv] == ['Bergbau']
+        # Einstellung wird gespeichert
+        spiel.dump_gamestate(1)
+        spiel.lade_spielstand(1)
+        assert spiel.window['erde_jobs_wiederholen'].get() is True
+        # Haken entfernen: der laufende Job läuft aus
+        spiel.verarbeite_event('erde_jobs_wiederholen', {'erde_jobs_wiederholen': False})
+        ticks(spiel, 2)
         assert spiel.erde_jobs_aktiv == []
 
     def test_raumsonde_entdeckt_mond_dann_mars(self, spiel):
