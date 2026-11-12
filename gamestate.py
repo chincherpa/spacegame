@@ -91,7 +91,7 @@ GAMESTATE = {
     },
     'Eisenbarren': {
       'beschreibung': 'Aus Roheisen geschmolzene Barren - Grundlage für Werkzeug und alle Raumschiffe.',
-      'dauer': 2,
+      'dauer': 1,
       'material': {
         'Roheisen': 1
       },
@@ -150,7 +150,7 @@ GAMESTATE = {
       'dauer': 10,
       'material': {
         'Mondlander': 5,
-        'Eisenbarren': 100,
+        'Eisenbarren': 50,
         'Werkzeug': 10,
         'Mondbasen Bauplan': 1,
         'Gold': 3,

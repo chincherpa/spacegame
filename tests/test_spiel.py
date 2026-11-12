@@ -107,7 +107,7 @@ class TestWerkstatt:
     def test_abbruch_liefert_fertige_stuecke(self, spiel):
         erforsche_alles(spiel)
         spiel.baue('Eisenbarren', 3)
-        ticks(spiel, 3)                      # 1 Stück fertig (2 Zyklen), 2 offen
+        ticks(spiel, 1)                      # 1 Stück fertig (1 Zyklus), 2 offen
         spiel.stoppe_bauen()
         assert inventar(spiel)['Eisenbarren'] == 1
         assert inventar(spiel)['Roheisen'] == 9
@@ -125,10 +125,10 @@ class TestWerkstatt:
         spiel.window['anzahl_bauen'].update(value=3)
         spiel.verarbeite_event('queue_bauen', {})
         assert spiel.bau_queue == [{'name': 'Eisenbarren', 'anzahl': 3}]
-        ticks(spiel, 4)                      # erster Auftrag fertig, zweiter startet
+        ticks(spiel, 2)                      # erster Auftrag fertig, zweiter startet
         assert inventar(spiel)['Eisenbarren'] == 2
         assert spiel.sLaufender_Bau == 'Eisenbarren' and spiel.iAnzahl_Bauen == 3
-        ticks(spiel, 6)
+        ticks(spiel, 3)
         assert inventar(spiel)['Eisenbarren'] == 5
         assert not spiel.bBauen_aktiv
 
@@ -144,7 +144,7 @@ class TestWerkstatt:
 
     def test_weltraumstation_gewinnt_das_spiel(self, spiel):
         erforsche_alles(spiel)
-        inventar(spiel).update({'Eisenbarren': 100, 'Werkzeug': 10, 'Mondbasen Bauplan': 1, 'Gold': 3})
+        inventar(spiel).update({'Eisenbarren': 50, 'Werkzeug': 10, 'Mondbasen Bauplan': 1, 'Gold': 3})
         spiel.GAMESTATE['Raumschiffe']['Erde']['Mondlander']['Anzahl'] = 5
         assert spiel.baue('Weltraumstation', 1)
         ticks(spiel, 10)
@@ -452,6 +452,13 @@ class TestMining:
         ticks(spiel, 3)
         assert spiel.GAMESTATE['Lager']['Mond']['Mondgestein'] == 7
 
+    def test_erfahrung_bringt_auf_dem_mars_gold(self, spiel):
+        entdecke(spiel, 'Mars')
+        inventar(spiel)['Astronaut_Erfahrung'] = 2
+        assert spiel.mining_belohnung('Mars') == {'Roheisen': 8, 'Gold': 1, 'Seltene_Mineralien': 1}
+        inventar(spiel)['Astronaut_Erfahrung'] = 3
+        assert spiel.mining_belohnung('Mars') == {'Roheisen': 8, 'Gold': 2, 'Seltene_Mineralien': 1}
+
 
 class TestMondmissionen:
     ERKUNDUNG = 'Erkundung und Probenentnahme'
@@ -530,6 +537,14 @@ class TestShopUndUI:
             assert f"Sitzplätze: {kapazitaet['astronauten']}" in text
             assert f"Frachtplätze: {kapazitaet['fracht']}" in text
             assert f"Reichweite: {kapazitaet['reichweite']}" in text
+
+    def test_inventarwert_rechnet_mit_verkaufspreisen(self, spiel):
+        from shop import VERKAUFSPREISE
+        spiel.GAMESTATE['Inventar'] = {'Werkzeug': 3, 'Gold': 2, 'Mondbasen Bauplan': 1, 'Staub': 0}
+        spiel.GAMESTATE['Raumschiffe']['Erde']['Rakete']['Anzahl'] = 1   # unverkäuflich
+        wert, typen = spiel.berechne_inventar_statistiken()
+        assert wert == 3 * VERKAUFSPREISE['Werkzeug'] + 2 * VERKAUFSPREISE['Gold']
+        assert typen == 3
 
     def test_kaufen_und_verkaufen(self, spiel):
         spiel.iCredits = 100

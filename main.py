@@ -301,11 +301,17 @@ def mining_dauer(planet):
 
 
 def mining_belohnung(planet):
-  """Ertrag einer Expedition; Astronauten-Erfahrung erhöht den Hauptertrag."""
-  belohnung = dict(MINING_EXPEDITIONEN[planet]['belohnung'])
-  bonus = min(GAMESTATE['Inventar'].get('Astronaut_Erfahrung', 0), config.EXPERIENCE_MINING_BONUS_MAX)
-  if bonus > 0 and belohnung:
-    haupt = next(iter(belohnung))
+  """Ertrag einer Expedition; Astronauten-Erfahrung erhöht den Hauptertrag.
+
+  Welcher Rohstoff profitiert und wie viele Erfahrungspunkte ein zusätzliches
+  Stück kostet, steht in MINING_EXPEDITIONEN ('hauptertrag', 'erfahrung_pro_bonus').
+  """
+  exp = MINING_EXPEDITIONEN[planet]
+  belohnung = dict(exp['belohnung'])
+  erfahrung = min(GAMESTATE['Inventar'].get('Astronaut_Erfahrung', 0), config.EXPERIENCE_MINING_BONUS_MAX)
+  bonus = erfahrung // exp.get('erfahrung_pro_bonus', 1)
+  haupt = exp.get('hauptertrag')
+  if bonus > 0 and haupt in belohnung:
     belohnung[haupt] += bonus
   return belohnung
 
@@ -895,30 +901,24 @@ def erstelle_raumschiff_uebersicht():
   ]
 
 def berechne_inventar_statistiken():
-  """Berechnet Gesamtwert und Typenzahl des Inventars (inkl. Raumschiffe)."""
-  logger.debug('berechne_inventar_statistiken()')
+  """Berechnet Verkaufswert und Typenzahl des Inventars auf der Erde.
+
+  Der Wert ist der Erlös, den der Shop für den gesamten Bestand zahlen würde.
+  Unverkäufliches (Upgrades, Baupläne, Raumschiffe) zählt deshalb nicht mit.
+  """
   gesamtwert = 0
   anzahl_typen = 0
-
   for material, anzahl in GAMESTATE['Inventar'].items():
     if anzahl > 0:
       anzahl_typen += 1
-      gesamtwert += anzahl * config.MATERIAL_VALUES.get(material, 0)
-
-  # Raumschiffe werden separat geführt, zählen aber zum Vermögen
-  for planet in GAMESTATE['Raumschiffe'].values():
-    for typ in RAUMSCHIFF_TYPEN:
-      anzahl = planet.get(typ, {}).get('Anzahl', 0)
-      if anzahl > 0:
-        gesamtwert += anzahl * config.MATERIAL_VALUES.get(typ, 0)
-
+      gesamtwert += verkaufspreis(material, anzahl)
   return gesamtwert, anzahl_typen
 
 def aktualisiere_inventar_statistiken():
   """Aktualisiert die Inventar-Statistiken"""
   gesamtwert, anzahl_typen = berechne_inventar_statistiken()
 
-  window['inventar_gesamtwert'].update(value=f"{gesamtwert:,} Credits")
+  window['inventar_gesamtwert'].update(value=f"{gesamtwert:,} Credits".replace(',', '.'))
   window['inventar_anzahl_typen'].update(value=str(anzahl_typen))
 
 # Globale Variablen für Reisen
@@ -1961,7 +1961,7 @@ def erstelle_inventar_tab():
 
     # Statistiken
     [sg.Text('Statistiken:', font=('Arial', 10, 'bold'))],
-    [sg.Text('Gesamtwert des Inventars:', size=(30, 1)), sg.Text('', key='inventar_gesamtwert', size=(20, 1))],
+    [sg.Text('Verkaufswert des Inventars:', size=(30, 1)), sg.Text('', key='inventar_gesamtwert', size=(20, 1))],
     [sg.Text('Anzahl verschiedener Materialien:', size=(30, 1)), sg.Text('', key='inventar_anzahl_typen', size=(20, 1))],
   ]
 

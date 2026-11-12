@@ -46,6 +46,9 @@ Erledigt:
   - Spiel startet mit dem zuletzt benutzten Slot
   - Bau-Warteschlange zeigt, worauf der vorderste Auftrag wartet
   - Kein Fehler-Popup mehr beim Schliessen über das X
+  - Inventarwert rechnet mit Verkaufspreisen
+  - Eisenbarren schmelzen in 1 Zyklus, die Weltraumstation braucht 50 statt 100
+  - Astronaut_Erfahrung bringt auf dem Mars Gold statt Roheisen
 
 Ideen für später:
   - Astronauten-Management (Erfahrung pro Person, Skills, Namen aus shipnames.py)

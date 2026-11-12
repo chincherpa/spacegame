@@ -130,7 +130,7 @@ TUTORIAL_SCHRITTE = [
         'key': 'weltraumstation',
         'titel': 'Weltraumstation bauen',
         'text': ('Das Ziel des Spiels: Baue die Weltraumstation. Du brauchst dafür '
-                 '5 Mondlander (auf der Erde), 100 Eisenbarren, 10 Werkzeug, '
+                 '5 Mondlander (auf der Erde), 50 Eisenbarren, 10 Werkzeug, '
                  '1 Mondbasen Bauplan und 3 Gold.'),
         'erfuellt': lambda gs: gs.get('Spiel_gewonnen', False),
     },
@@ -250,7 +250,7 @@ HILFE_TEXTE = {
         '(als Fracht hinbringen). Manche bauen auf anderen Missionen auf.\n\n'
         'Jede Mission kann einmal abgeschlossen werden. Mondgestein und '
         'Mineralien landen im Mond-Lager, Upgrades wirken sofort und dauerhaft:\n'
-        '- Astronaut_Erfahrung: mehr Ertrag beim Mining\n'
+        '- Astronaut_Erfahrung: mehr Mondgestein und (ab 3 Punkten) mehr Gold beim Mining\n'
         '- Mondstation_Modul: kürzere Mond-Expeditionen\n'
         '- Lebenserhaltung_Upgrade: weniger Wasser auf Reisen\n'
         '- Kommunikations_Upgrade: laufend zusätzliche Forschungspunkte'

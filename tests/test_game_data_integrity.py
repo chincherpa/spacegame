@@ -7,7 +7,6 @@ Kosten, die im Verhältnis zum restlichen Spiel unerreichbar sind.
 """
 import pytest
 
-import config
 from actions import ACTIONS
 from gamestate import GAMESTATE
 from materials import MATERIALS
@@ -231,18 +230,6 @@ class TestShopUndWerte:
     @pytest.mark.parametrize('name', sorted(SHOP_MATERIALIEN))
     def test_kaufbare_materialien_existieren(self, name):
         assert name in INVENTAR
-
-    @pytest.mark.parametrize('material', sorted(INVENTAR))
-    def test_inventarmaterialien_haben_einen_wert(self, material):
-        """Ohne Wert zählt das Material nicht zum Inventarvermögen."""
-        assert material in config.MATERIAL_VALUES, (
-            f"'{material}' fehlt in config.MATERIAL_VALUES"
-        )
-
-    @pytest.mark.parametrize('material', sorted(config.MATERIAL_VALUES))
-    def test_materialwerte_sind_plausibel(self, material):
-        wert = config.MATERIAL_VALUES[material]
-        assert 0 < wert <= 100000, f"'{material}' hat den unplausiblen Wert {wert}"
 
 
 class TestPlaneten:
