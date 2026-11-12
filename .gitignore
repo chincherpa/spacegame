@@ -6,5 +6,6 @@ __pycache__/
 .pytest_cache/
 Archiv/
 *.pyc
-.vscode/savefile*.json
+.vscode/
+savefile*.json
 *.beschaedigt

@@ -44,38 +44,14 @@ PROBE_DATA_RESEARCH_POINTS = 15
 # =============================================================================
 
 # Jedes Kommunikations_Upgrade liefert zusätzliche Forschungspunkte pro Intervall
-COMM_UPGRADE_SCIENCE_POINTS = 1
+# (10 Punkte in 20 Zyklen entsprechen etwa einem Arbeiter in Laborarbeit)
+COMM_UPGRADE_SCIENCE_POINTS = 10
 # Jedes Mondstation_Modul verkürzt Mond-Expeditionen (nie unter MINING_MIN_DAUER)
 MOON_MODULE_MINING_TICKS = 1
 MINING_MIN_DAUER = 2
-# Astronaut_Erfahrung erhöht den Hauptertrag jeder Expedition (gedeckelt)
+# Astronaut_Erfahrung erhöht den Hauptertrag jeder Expedition. Mehr als dieser
+# Wert zählt nicht; was ein Punkt bringt, steht je Planet in mining.py.
 EXPERIENCE_MINING_BONUS_MAX = 3
-
-# =============================================================================
-# MATERIAL VALUES (for inventory statistics)
-# =============================================================================
-
-MATERIAL_VALUES = {
-    'Eisenbarren': 50,
-    'Baumaterial': 100,
-    'Werkzeug': 200,
-    'Roheisen': 20,
-    'Staub': 5,
-    'Wasser': 10,
-    'Treibstoff': 30,
-    'Gold': 500,
-    'Raumsonde': 1000,
-    'Mondlander': 5000,
-    'Rakete': 15000,
-    'Weltraumstation': 50000,
-    'Mondgestein': 100,
-    'Seltene_Mineralien': 300,
-    'Mondstation_Modul': 400,
-    'Mondbasen Bauplan': 800,
-    'Lebenserhaltung_Upgrade': 350,
-    'Kommunikations_Upgrade': 350,
-    'Astronaut_Erfahrung': 50,
-}
 
 # =============================================================================
 # TRAVEL

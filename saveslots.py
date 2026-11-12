@@ -113,6 +113,33 @@ def slot_beschriftung(info):
     return text
 
 
+def _merker_datei():
+    """Datei, die sich den zuletzt benutzten Slot merkt."""
+    basis, endung = os.path.splitext(config.SAVEFILE)
+    return f'{basis}_aktiv{endung}'
+
+
+def merke_slot(slot):
+    """Merkt sich `slot` als zuletzt benutzten Slot für den nächsten Spielstart."""
+    slot_datei(slot)  # prüft den Wertebereich
+    temp = f'{_merker_datei()}.tmp'
+    with open(temp, 'w', encoding='utf-8') as fh:
+        json.dump({'slot': slot}, fh)
+    os.replace(temp, _merker_datei())
+
+
+def gemerkter_slot():
+    """Zuletzt benutzter Slot; Slot 1, wenn nichts (Brauchbares) gemerkt ist."""
+    try:
+        with open(_merker_datei(), 'r', encoding='utf-8') as fh:
+            slot = json.load(fh).get('slot')
+    except (OSError, ValueError, AttributeError):
+        return 1
+    if isinstance(slot, int) and 1 <= slot <= SLOT_ANZAHL and os.path.exists(slot_datei(slot)):
+        return slot
+    return 1
+
+
 def speichere_slot(slot, gamestate):
     """Schreibt einen Spielstand in einen Slot.
 

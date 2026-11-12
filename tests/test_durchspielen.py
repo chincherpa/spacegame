@@ -57,7 +57,11 @@ class Bot:
         return False
 
     def fliege(self, typ, ziel, astronauten, fracht, treibstoff, wasser):
-        """Bringt Astronauten und Fracht ans Ziel; True, sobald sie dort sind."""
+        """Bringt Astronauten und Fracht ans Ziel; True, sobald sie dort sind.
+
+        `treibstoff` ist der Verbrauch des Hinflugs; Treibstoff für den Rückflug
+        steckt in `fracht`.
+        """
         gs = self.s.GAMESTATE
         if gs['Astronauten'][ziel] >= astronauten:
             return True
@@ -65,31 +69,40 @@ class Bot:
             return False
         bereit = all([
             self.brauche(typ, 1),
-            self.brauche('Treibstoff', treibstoff),
+            self.brauche('Treibstoff', treibstoff + fracht.get('Treibstoff', 0)),
             self.s.get_bestand('Wasser') >= wasser,
-            *[self.brauche(material, menge) for material, menge in fracht.items()],
+            *[self.brauche(material, menge) for material, menge in fracht.items() if material != 'Treibstoff'],
         ])
         if bereit:
             assert self.s.starte_reise(typ, 'Erde', ziel, astronauten, fracht)
         return False
 
+    def hole(self, typ, planet, material, menge):
+        """Baut `material` auf `planet` ab und fliegt es unbemannt zur Erde."""
+        if self.s.get_bestand(material) >= menge:
+            return True
+        if self.s.aktive_reisen:
+            return False
+        if self.s.lager(planet).get(material, 0) >= menge:
+            assert self.s.starte_reise(typ, planet, 'Erde', 0, {material: menge})
+        elif not self.s.mining_aktiv:
+            assert self.s.starte_mining(planet)
+        return False
+
     def mondgestein(self):
         if self.s.get_bestand('Mondgestein') >= 2 or self.s.get_bestand('Mondbasen Bauplan') >= 1:
             return True
-        if not self.fliege('Mondlander', 'Mond', 2, {'Werkzeug': 1}, treibstoff=1, wasser=2):
+        if not self.fliege('Mondlander', 'Mond', 2, {'Werkzeug': 1, 'Treibstoff': 1}, treibstoff=1, wasser=2):
             return False
-        if not self.s.mining_aktiv:
-            assert self.s.starte_mining('Mond')
-        return False
+        return self.hole('Mondlander', 'Mond', 'Mondgestein', 2)
 
     def gold(self):
         if self.s.get_bestand('Gold') >= 3:
             return True
-        if not self.fliege('Rakete', 'Mars', 2, {'Werkzeug': 3, 'Baumaterial': 3}, treibstoff=6, wasser=6):
+        fracht = {'Werkzeug': 3, 'Baumaterial': 3, 'Treibstoff': 6}
+        if not self.fliege('Rakete', 'Mars', 2, fracht, treibstoff=6, wasser=6):
             return False
-        if not self.s.mining_aktiv:
-            assert self.s.starte_mining('Mars')
-        return False
+        return self.hole('Rakete', 'Mars', 'Gold', 3)
 
     def station(self):
         if self.s.GAMESTATE['Spiel_gewonnen']:

@@ -48,7 +48,7 @@ MATERIALS = {
     'benötigt für': []
     },
   'Mondgestein': {
-    'Beschreibung': 'Proben vom Mond - für den Mondbasen Bauplan oder zum Verkauf',
+    'Beschreibung': 'Proben vom Mond - für den Mondbasen Bauplan oder zum Verkauf (von der Erde aus)',
     'benötigt für': []
     },
   'Seltene_Mineralien': {
@@ -64,7 +64,7 @@ MATERIALS = {
     'benötigt für': []
     },
   'Astronaut_Erfahrung': {
-    'Beschreibung': 'Erfahrene Astronauten - jede Mining-Expedition bringt pro Punkt 1 Rohstoff mehr',
+    'Beschreibung': 'Erfahrene Astronauten - mehr Ertrag beim Mining: +1 Mondgestein je Punkt, +1 Gold bei 3 Punkten',
     'benötigt für': []
     },
   'Lebenserhaltung_Upgrade': {

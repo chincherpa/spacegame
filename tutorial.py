@@ -86,19 +86,20 @@ TUTORIAL_SCHRITTE = [
         'key': 'zum_mond',
         'titel': 'Astronauten zum Mond bringen',
         'text': ('Plane im Tab "Reisen" einen Flug Erde → Mond mit Astronauten an Bord. '
-                 'Der Flug kostet Treibstoff und Wasser. Nimm Werkzeug als Fracht mit: '
-                 'Missionen und Mining verbrauchen Material aus dem Mond-Lager.'),
+                 'Der Flug kostet Treibstoff und Wasser. Nimm Werkzeug und 1 Treibstoff als '
+                 'Fracht mit: Missionen, Mining und der Rückflug verbrauchen Material aus '
+                 'dem Mond-Lager.'),
         'erfuellt': lambda gs: gs.get('Astronauten', {}).get('Mond', 0) > 0,
     },
     {
         'key': 'mondmission',
-        'titel': 'Mondgestein beschaffen',
+        'titel': 'Mondgestein zur Erde bringen',
         'text': ('Mit freien Astronauten und Werkzeug im Mond-Lager kannst du im Tab '
-                 '"Mining" Mondgestein abbauen. Mondmissionen bringen zusätzlich '
-                 'Credits, Forschungspunkte und dauerhafte Upgrades.'),
+                 '"Mining" Mondgestein abbauen. Der Ertrag liegt im Mond-Lager: lade '
+                 '2 Mondgestein als Fracht ein und fliege sie zur Erde (das Schiff '
+                 'braucht dafür Treibstoff im Mond-Lager).'),
         'erfuellt': lambda gs: (
-            _im_inventar(gs, 'Mondgestein') or _im_inventar(gs, 'Mondbasen Bauplan')
-            or any(m.get('erforscht') for m in gs.get('Mondmissionen', {}).values())
+            _im_inventar(gs, 'Mondgestein', 2) or _im_inventar(gs, 'Mondbasen Bauplan')
             or gs.get('Spiel_gewonnen', False)
         ),
     },
@@ -118,17 +119,18 @@ TUTORIAL_SCHRITTE = [
     },
     {
         'key': 'gold',
-        'titel': 'Gold auf dem Mars abbauen',
-        'text': ('Nur die Rakete erreicht den Mars. Bringe 2 Astronauten sowie Werkzeug '
-                 'und Baumaterial als Fracht hin und starte im Tab "Mining" Expeditionen, '
-                 'bis du 3 Gold hast.'),
+        'titel': 'Gold vom Mars holen',
+        'text': ('Nur die Rakete erreicht den Mars. Bringe 2 Astronauten sowie je 3 Werkzeug '
+                 'und Baumaterial und 6 Treibstoff für den Rückflug als Fracht hin. Starte im '
+                 'Tab "Mining" Expeditionen, bis 3 Gold im Mars-Lager liegen, und fliege '
+                 'sie zur Erde.'),
         'erfuellt': lambda gs: _im_inventar(gs, 'Gold', 3) or gs.get('Spiel_gewonnen', False),
     },
     {
         'key': 'weltraumstation',
         'titel': 'Weltraumstation bauen',
         'text': ('Das Ziel des Spiels: Baue die Weltraumstation. Du brauchst dafür '
-                 '5 Mondlander (auf der Erde), 100 Eisenbarren, 10 Werkzeug, '
+                 '5 Mondlander (auf der Erde), 50 Eisenbarren, 10 Werkzeug, '
                  '1 Mondbasen Bauplan und 3 Gold.'),
         'erfuellt': lambda gs: gs.get('Spiel_gewonnen', False),
     },
@@ -187,7 +189,8 @@ HILFE_TEXTE = {
         'Arbeit - Erde\n\n'
         'Arbeiter erledigen Jobs, die Rohstoffe und Forschungspunkte liefern. '
         'Jeder Job bindet Arbeiter für seine Laufzeit; oben siehst du, wie viele '
-        'noch frei sind.\n\n'
+        'noch frei sind. Mit dem Haken "automatisch wiederholen" startet jeder '
+        'fertige Job sofort neu.\n\n'
         'Laborarbeit ist am Anfang die wichtigste Quelle für Forschungspunkte.'
     ),
     'tab_Forschung': (
@@ -229,10 +232,13 @@ HILFE_TEXTE = {
         'Reisen\n\n'
         'Wähle Start, Ziel und Raumschiff. Reisen verbrauchen Treibstoff '
         '(abhängig von der Entfernung) und Wasser für die Lebenserhaltung der '
-        'Astronauten.\n\n'
-        'Fracht (Werkzeug, Baumaterial) landet im Lager des Zielplaneten. Nur '
-        'von dort können Missionen und Mining sie verbrauchen. Astronauten in '
-        'laufenden Missionen oder Expeditionen können nicht mitfliegen.\n\n'
+        'Astronauten - beides aus dem Vorrat des Startplaneten. Für den Rückflug '
+        'von Mond oder Mars muss der Treibstoff also als Fracht mit.\n\n'
+        'Fracht landet im Lager des Zielplaneten. Nur von dort können Missionen '
+        'und Mining sie verbrauchen. Umgekehrt liegen deren Erträge im Lager vor '
+        'Ort und müssen zur Erde geflogen werden, bevor du sie verbauen oder '
+        'verkaufen kannst. Astronauten in laufenden Missionen oder Expeditionen '
+        'können nicht mitfliegen.\n\n'
         'Achtung auf die Reichweite: Der Mondlander schafft nur Entfernung 1. '
         'Unterwegs kann es Zwischenfälle geben - Pannen, Funde oder günstigen '
         'Sonnenwind.'
@@ -242,9 +248,9 @@ HILFE_TEXTE = {
         'Missionen laufen parallel im Hintergrund. Sie binden freie Astronauten '
         'auf dem Mond, kosten Credits und verbrauchen Material aus dem Mond-Lager '
         '(als Fracht hinbringen). Manche bauen auf anderen Missionen auf.\n\n'
-        'Jede Mission kann einmal abgeschlossen werden. Die Belohnungen wirken '
-        'dauerhaft:\n'
-        '- Astronaut_Erfahrung: mehr Ertrag beim Mining\n'
+        'Jede Mission kann einmal abgeschlossen werden. Mondgestein und '
+        'Mineralien landen im Mond-Lager, Upgrades wirken sofort und dauerhaft:\n'
+        '- Astronaut_Erfahrung: mehr Mondgestein und (ab 3 Punkten) mehr Gold beim Mining\n'
         '- Mondstation_Modul: kürzere Mond-Expeditionen\n'
         '- Lebenserhaltung_Upgrade: weniger Wasser auf Reisen\n'
         '- Kommunikations_Upgrade: laufend zusätzliche Forschungspunkte'
@@ -252,7 +258,8 @@ HILFE_TEXTE = {
     'tab_Mining': (
         'Mining\n\n'
         'Expeditionen bauen Rohstoffe auf Mond und Mars ab. Jede bindet 2 freie '
-        'Astronauten vor Ort und verbraucht Material aus dem Lager des Planeten.\n\n'
+        'Astronauten vor Ort und verbraucht Material aus dem Lager des Planeten. '
+        'Der Ertrag landet im selben Lager - hole ihn mit einem Raumschiff ab.\n\n'
         'Der Mond liefert Mondgestein und seltene Mineralien, der Mars Roheisen '
         'und Gold. Gold brauchst du für die Weltraumstation.'
     ),
@@ -268,9 +275,11 @@ HILFE_ALLGEMEIN = (
     '3. In der Werkstatt produzieren - vom Eisenbarren bis zur Rakete.\n'
     '4. Raumsonde bauen und im HQ starten: sie entdeckt Mond und Mars.\n'
     '5. Mit Mondlander/Rakete Astronauten und Fracht bewegen (Tab "Reisen").\n'
-    '   Fracht landet im Lager des Zielplaneten.\n'
+    '   Fracht landet im Lager des Zielplaneten. Treibstoff für den Rückflug '
+    'muss als Fracht mit.\n'
     '6. Mondmissionen und Mining bringen Credits, Forschungspunkte, Mondgestein '
-    'und Upgrades. Sie verbrauchen Material aus dem Lager vor Ort.\n'
+    'und Upgrades. Sie verbrauchen Material aus dem Lager vor Ort; ihre Erträge '
+    'liegen ebenfalls dort und müssen zur Erde geflogen werden.\n'
     '7. Mit der Rakete zum Mars: dort gibt es Gold.\n'
     '8. Mondbasen Bauplan herstellen und die Weltraumstation bauen - gewonnen.\n\n'
     'Das Spiel läuft in Echtzeit: alle paar Sekunden vergeht ein Zyklus. '

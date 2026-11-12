@@ -91,7 +91,7 @@ GAMESTATE = {
     },
     'Eisenbarren': {
       'beschreibung': 'Aus Roheisen geschmolzene Barren - Grundlage für Werkzeug und alle Raumschiffe.',
-      'dauer': 2,
+      'dauer': 1,
       'material': {
         'Roheisen': 1
       },
@@ -150,7 +150,7 @@ GAMESTATE = {
       'dauer': 10,
       'material': {
         'Mondlander': 5,
-        'Eisenbarren': 100,
+        'Eisenbarren': 50,
         'Werkzeug': 10,
         'Mondbasen Bauplan': 1,
         'Gold': 3,
@@ -232,12 +232,16 @@ GAMESTATE = {
       }
   },
 
-  # Material, das per Fracht auf einen Planeten gebracht wurde. Missionen und
-  # Mining verbrauchen ihr Material aus dem Lager des jeweiligen Planeten.
+  # Vorrat auf Mond und Mars: per Fracht gebrachtes Material und die Erträge
+  # von Missionen und Mining. Missionen, Mining und abfliegende Schiffe
+  # verbrauchen aus dem Lager ihres Planeten.
   'Lager': {
     'Mond': {},
     'Mars': {},
   },
+
+  # Fertige Erd-Jobs automatisch neu starten?
+  'Jobs_wiederholen': False,
 
   # Laufende Vorgänge (werden mitgespeichert)
   'AktiveForschung': None,   # {'name': ..., 'fortschritt': ...}
