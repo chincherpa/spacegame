@@ -86,16 +86,20 @@ TUTORIAL_SCHRITTE = [
         'key': 'zum_mond',
         'titel': 'Astronauten zum Mond bringen',
         'text': ('Plane im Tab "Reisen" einen Flug Erde → Mond mit Astronauten an Bord. '
-                 'Vergiss den Treibstoff und das Wasser für die Lebenserhaltung nicht.'),
+                 'Der Flug kostet Treibstoff und Wasser. Nimm Werkzeug als Fracht mit: '
+                 'Missionen und Mining verbrauchen Material aus dem Mond-Lager.'),
         'erfuellt': lambda gs: gs.get('Astronauten', {}).get('Mond', 0) > 0,
     },
     {
         'key': 'mondmission',
-        'titel': 'Erste Mondmission abschliessen',
-        'text': ('Mit Astronauten auf dem Mond kannst du Mondmissionen starten. Sie '
-                 'bringen Credits, Forschungspunkte und seltene Materialien.'),
-        'erfuellt': lambda gs: any(
-            m.get('erforscht') for m in gs.get('Mondmissionen', {}).values()
+        'titel': 'Mondgestein beschaffen',
+        'text': ('Mit freien Astronauten und Werkzeug im Mond-Lager kannst du im Tab '
+                 '"Mining" Mondgestein abbauen. Mondmissionen bringen zusätzlich '
+                 'Credits, Forschungspunkte und dauerhafte Upgrades.'),
+        'erfuellt': lambda gs: (
+            _im_inventar(gs, 'Mondgestein') or _im_inventar(gs, 'Mondbasen Bauplan')
+            or any(m.get('erforscht') for m in gs.get('Mondmissionen', {}).values())
+            or gs.get('Spiel_gewonnen', False)
         ),
     },
     {
@@ -103,13 +107,29 @@ TUTORIAL_SCHRITTE = [
         'titel': 'Mondbasen Bauplan herstellen',
         'text': ('Erforsche den Mondbasen Bauplan und stelle ihn in der Werkstatt her. '
                  'Er wird für die Weltraumstation gebraucht (benötigt Mondgestein).'),
-        'erfuellt': lambda gs: _im_inventar(gs, 'Mondbasen Bauplan'),
+        'erfuellt': lambda gs: _im_inventar(gs, 'Mondbasen Bauplan') or gs.get('Spiel_gewonnen', False),
+    },
+    {
+        'key': 'mars_entdecken',
+        'titel': 'Mars entdecken',
+        'text': ('Für die Weltraumstation brauchst du Gold - das gibt es nur auf dem '
+                 'Mars. Starte eine zweite Raumsonde, um ihn zu entdecken.'),
+        'erfuellt': lambda gs: _entdeckt(gs, 'Mars') or gs.get('Spiel_gewonnen', False),
+    },
+    {
+        'key': 'gold',
+        'titel': 'Gold auf dem Mars abbauen',
+        'text': ('Nur die Rakete erreicht den Mars. Bringe 2 Astronauten sowie Werkzeug '
+                 'und Baumaterial als Fracht hin und starte im Tab "Mining" Expeditionen, '
+                 'bis du 3 Gold hast.'),
+        'erfuellt': lambda gs: _im_inventar(gs, 'Gold', 3) or gs.get('Spiel_gewonnen', False),
     },
     {
         'key': 'weltraumstation',
         'titel': 'Weltraumstation bauen',
         'text': ('Das Ziel des Spiels: Baue die Weltraumstation. Du brauchst dafür '
-                 '5 Mondlander, 100 Eisenbarren, 10 Werkzeug und 1 Mondbasen Bauplan.'),
+                 '5 Mondlander (auf der Erde), 100 Eisenbarren, 10 Werkzeug, '
+                 '1 Mondbasen Bauplan und 3 Gold.'),
         'erfuellt': lambda gs: gs.get('Spiel_gewonnen', False),
     },
 ]
@@ -175,7 +195,8 @@ HILFE_TEXTE = {
         'Forschung kostet Forschungspunkte und Zeit. Technologien bauen '
         'aufeinander auf - die Voraussetzung steht in der Beschreibung.\n\n'
         'Läuft bereits eine Forschung, kannst du weitere in die Warteschlange '
-        'stellen. Ein Abbruch erstattet die Forschungspunkte zurück.'
+        'stellen; sie starten, sobald die Punkte reichen. Ein Abbruch erstattet '
+        'die Forschungspunkte zurück.'
     ),
     'tab_Werkstatt': (
         'Werkstatt\n\n'
@@ -183,7 +204,9 @@ HILFE_TEXTE = {
         'Weltraumstation her. Die Materialien werden sofort beim Start abgezogen.\n\n'
         '"Rohstoffe gesamt" zeigt die komplette Produktionskette bis zu den '
         'Grundstoffen. Ein Abbruch gibt die Materialien für noch nicht fertige '
-        'Stücke zurück.'
+        'Stücke zurück.\n\n'
+        'Läuft bereits ein Bau, kannst du weitere Aufträge in die Warteschlange '
+        'stellen. Ihr Material wird erst beim Start abgezogen.'
     ),
     'tab_Inventar': (
         'Inventar\n\n'
@@ -199,31 +222,39 @@ HILFE_TEXTE = {
     ),
     'tab_Planeten': (
         'Planeten\n\n'
-        'Übersicht über Erde, Mond und Mars sowie die dort stationierten '
-        'Astronauten. Neue Planeten entdeckst du mit der Raumsonde.'
+        'Übersicht über Erde, Mond und Mars: Astronauten, Raumschiffe und das '
+        'Lager vor Ort. Neue Planeten entdeckst du mit der Raumsonde.'
     ),
     'tab_Reisen': (
         'Reisen\n\n'
         'Wähle Start, Ziel und Raumschiff. Reisen verbrauchen Treibstoff '
         '(abhängig von der Entfernung) und Wasser für die Lebenserhaltung der '
         'Astronauten.\n\n'
+        'Fracht (Werkzeug, Baumaterial) landet im Lager des Zielplaneten. Nur '
+        'von dort können Missionen und Mining sie verbrauchen. Astronauten in '
+        'laufenden Missionen oder Expeditionen können nicht mitfliegen.\n\n'
         'Achtung auf die Reichweite: Der Mondlander schafft nur Entfernung 1. '
         'Unterwegs kann es Zwischenfälle geben - Pannen, Funde oder günstigen '
         'Sonnenwind.'
     ),
     'tab_Mondmissionen': (
         'Mondmissionen\n\n'
-        'Missionen laufen parallel im Hintergrund und benötigen Astronauten auf '
-        'dem Mond, Credits und teilweise Material.\n\n'
-        'Jede Mission kann einmal abgeschlossen werden und bringt dann '
-        'Forschungspunkte, Credits und seltene Materialien.'
+        'Missionen laufen parallel im Hintergrund. Sie binden freie Astronauten '
+        'auf dem Mond, kosten Credits und verbrauchen Material aus dem Mond-Lager '
+        '(als Fracht hinbringen). Manche bauen auf anderen Missionen auf.\n\n'
+        'Jede Mission kann einmal abgeschlossen werden. Die Belohnungen wirken '
+        'dauerhaft:\n'
+        '- Astronaut_Erfahrung: mehr Ertrag beim Mining\n'
+        '- Mondstation_Modul: kürzere Mond-Expeditionen\n'
+        '- Lebenserhaltung_Upgrade: weniger Wasser auf Reisen\n'
+        '- Kommunikations_Upgrade: laufend zusätzliche Forschungspunkte'
     ),
     'tab_Mining': (
         'Mining\n\n'
-        'Expeditionen bauen Rohstoffe auf Mond und Mars ab. Sie benötigen '
-        'Astronauten vor Ort und Werkzeug.\n\n'
-        'Mining ist die verlässlichste Quelle für Mondgestein und seltene '
-        'Mineralien.'
+        'Expeditionen bauen Rohstoffe auf Mond und Mars ab. Jede bindet 2 freie '
+        'Astronauten vor Ort und verbraucht Material aus dem Lager des Planeten.\n\n'
+        'Der Mond liefert Mondgestein und seltene Mineralien, der Mars Roheisen '
+        'und Gold. Gold brauchst du für die Weltraumstation.'
     ),
 }
 
@@ -237,15 +268,18 @@ HILFE_ALLGEMEIN = (
     '3. In der Werkstatt produzieren - vom Eisenbarren bis zur Rakete.\n'
     '4. Raumsonde bauen und im HQ starten: sie entdeckt Mond und Mars.\n'
     '5. Mit Mondlander/Rakete Astronauten und Fracht bewegen (Tab "Reisen").\n'
-    '6. Mondmissionen und Mining bringen Credits, Forschungspunkte und seltene '
-    'Materialien.\n'
-    '7. Mondbasen Bauplan herstellen und die Weltraumstation bauen - gewonnen.\n\n'
+    '   Fracht landet im Lager des Zielplaneten.\n'
+    '6. Mondmissionen und Mining bringen Credits, Forschungspunkte, Mondgestein '
+    'und Upgrades. Sie verbrauchen Material aus dem Lager vor Ort.\n'
+    '7. Mit der Rakete zum Mars: dort gibt es Gold.\n'
+    '8. Mondbasen Bauplan herstellen und die Weltraumstation bauen - gewonnen.\n\n'
     'Das Spiel läuft in Echtzeit: alle paar Sekunden vergeht ein Zyklus. '
-    'Es wird automatisch gespeichert; über "File" kannst du zusätzlich in drei '
-    'Slots speichern und laden.\n\n'
+    'Es wird automatisch in den aktiven Slot gespeichert - auch laufende '
+    'Forschung und Bauaufträge. Über "File" kannst du in drei Slots speichern '
+    'und laden oder ein neues Spiel beginnen.\n\n'
     'Tipp: Die Anzeige "Nächstes Ziel" im HQ sagt dir jederzeit, was als '
     'Nächstes ansteht.\n\n'
-    'Tastenkürzel: Strg+S speichert in Slot 1, F1 zeigt die Hilfe zum aktuellen Tab.'
+    'Tastenkürzel: Strg+S speichert in den aktiven Slot, F1 zeigt die Hilfe zum aktuellen Tab.'
 )
 
 

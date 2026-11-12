@@ -12,12 +12,12 @@ MATERIALS = {
     'benötigt für': ['Eisenbarren']
     },
   'Staub': {
-    'Beschreibung': 'Mondstaub für Baumaterial',
+    'Beschreibung': 'Staub für Baumaterial',
     'benötigt für': ['Baumaterial']
     },
   'Gold': {
-    'Beschreibung': 'Wertvolles Metall',
-    'benötigt für': []
+    'Beschreibung': 'Wertvolles Metall vom Mars - wird für die Weltraumstation gebraucht',
+    'benötigt für': ['Weltraumstation']
     },
   'Treibstoff': {
     'Beschreibung': 'Treibstoff für Raumschiffe, wird bei jeder Reise verbraucht.',
@@ -48,11 +48,11 @@ MATERIALS = {
     'benötigt für': []
     },
   'Mondgestein': {
-    'Beschreibung': 'Wissenschaftlich wertvolle Proben',
+    'Beschreibung': 'Proben vom Mond - für den Mondbasen Bauplan oder zum Verkauf',
     'benötigt für': []
     },
   'Seltene_Mineralien': {
-    'Beschreibung': 'Wertvolle Mineralien',
+    'Beschreibung': 'Wertvolle Mineralien - bringen im Shop viele Credits',
     'benötigt für': []
     },
   'Mondbasen Bauplan': {
@@ -60,19 +60,19 @@ MATERIALS = {
     'benötigt für': ['Weltraumstation']
     },
   'Mondstation_Modul': {
-    'Beschreibung': 'Vorgefertigte Stationsmodule',
+    'Beschreibung': 'Stationsmodul auf dem Mond - Mond-Expeditionen dauern einen Zyklus kürzer',
     'benötigt für': []
     },
   'Astronaut_Erfahrung': {
-    'Beschreibung': 'Erfahrungspunkte für Astronauten',
+    'Beschreibung': 'Erfahrene Astronauten - jede Mining-Expedition bringt pro Punkt 1 Rohstoff mehr',
     'benötigt für': []
     },
   'Lebenserhaltung_Upgrade': {
-    'Beschreibung': 'Verbesserte Lebenserhaltung',
+    'Beschreibung': 'Verbesserte Lebenserhaltung - halbiert den Wasserbedarf auf Reisen',
     'benötigt für': []
     },
   'Kommunikations_Upgrade': {
-    'Beschreibung': 'Verbesserte Kommunikation',
+    'Beschreibung': 'Datenleitung zur Erde - liefert laufend zusätzliche Forschungspunkte',
     'benötigt für': []
     },
 }

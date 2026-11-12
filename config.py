@@ -18,18 +18,6 @@ WINDOW_READ_TIMEOUT = 100  # milliseconds between window reads
 # =============================================================================
 
 TICK_INTERVAL = 2  # seconds between game ticks
-TICK_MULTIPLIER = 1  # For research/build duration calculation (dauer / TICK)
-
-# =============================================================================
-# STARTING RESOURCES
-# =============================================================================
-
-START_CREDITS = 10  # Initial credits (note: GAMESTATE uses 10, not 500)
-START_ASTRONAUTS = 10  # Initial astronauts on Earth
-START_WORKERS = 10  # Initial workers on Earth
-START_ROHEISEN = 10  # Initial raw iron
-START_STAUB = 5  # Initial dust
-START_WASSER = 10  # Initial water
 
 # =============================================================================
 # PASSIVE INCOME (per tick interval)
@@ -48,13 +36,20 @@ SCIENCE_POINTS_EXTRA_TICKS = 20  # Every N ticks
 MOON_DISCOVERY_RESEARCH_POINTS = 5
 MARS_DISCOVERY_RESEARCH_POINTS = 10
 
+# Forschungspunkte für Sondenflüge, wenn schon alles entdeckt ist
+PROBE_DATA_RESEARCH_POINTS = 15
+
 # =============================================================================
-# SPACESHIP CAPACITIES (fallback if not in SCIENCE)
+# BONI DURCH MISSIONSBELOHNUNGEN
 # =============================================================================
 
-DEFAULT_ASTRONAUT_CAPACITY = 2
-DEFAULT_CARGO_CAPACITY = 3
-DEFAULT_RANGE = 1
+# Jedes Kommunikations_Upgrade liefert zusätzliche Forschungspunkte pro Intervall
+COMM_UPGRADE_SCIENCE_POINTS = 1
+# Jedes Mondstation_Modul verkürzt Mond-Expeditionen (nie unter MINING_MIN_DAUER)
+MOON_MODULE_MINING_TICKS = 1
+MINING_MIN_DAUER = 2
+# Astronaut_Erfahrung erhöht den Hauptertrag jeder Expedition (gedeckelt)
+EXPERIENCE_MINING_BONUS_MAX = 3
 
 # =============================================================================
 # MATERIAL VALUES (for inventory statistics)
@@ -94,7 +89,6 @@ TRAVEL_EVENTS_ENABLED = True  # Zufallsereignisse während Reisen
 
 SAVEFILE = "savefile.json"
 IMAGE_PATH = "images"
-IMAGE_SUBSAMPLE = 8  # For scaling images
 
 # =============================================================================
 # UI SETTINGS
@@ -102,18 +96,3 @@ IMAGE_SUBSAMPLE = 8  # For scaling images
 
 LOG_MAX_ENTRIES = 100  # Maximum log entries to display
 AUTOSAVE_INTERVAL = 150  # Ticks between automatic saves (~5 minutes)
-PROGRESS_BAR_SIZE = (20, 20)  # Default progress bar dimensions
-
-# =============================================================================
-# EARTH JOBS TIMING
-# =============================================================================
-
-DEFAULT_JOB_DURATION = 2  # Default job duration in ticks
-DEFAULT_WORKERS_REQUIRED = 1  # Default workers per job
-
-# =============================================================================
-# DEPRECATED (kept for backward compatibility)
-# =============================================================================
-
-TICK = TICK_MULTIPLIER  # Old name, use TICK_MULTIPLIER instead
-WINDOW_READ = WINDOW_READ_TIMEOUT * 20  # Old name, use WINDOW_READ_TIMEOUT

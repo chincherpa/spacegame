@@ -7,16 +7,14 @@ This document contains the feature roadmap and TODO items for the Spacegame proj
 ## Feature Status Analysis
 
 ### 1. Build System (Bau-System)
-**Status**: Partially implemented
+**Status**: Working
 
-**Current State**:
-- Functions for starting/ending build processes exist (`baue()`, `beende_bauen()`)
-- Queue system for multiple build orders implemented
-
-**TODO**:
-- Improve error handling (e.g., return materials when build is cancelled)
-- Add optional build completion notifications in the log
-- Synchronize build progress with UI/progress bar and inventory
+- `baue()`, `beende_bauen()`, `stoppe_bauen()` work on the running order
+  (`sLaufender_Bau`), independent of what is selected in the UI
+- Build queue ("In Queue stellen") with a quantity per order; materials are
+  taken when an order starts, and an order waits while materials are missing
+- Cancelling returns materials for unfinished pieces
+- Running build and queue are saved and restored
 
 ---
 
@@ -79,17 +77,23 @@ unreachable; they are now 35 and 80. The unused duplicate key
 
 ---
 
-### 5. Moon Missions (Mondmissionen)
+### 5. Moon Missions and Mining
 **Status**: Working
 
-**Current State**:
-- Mission start/cancel/completion is mapped
-- Missions run in the background, in parallel to other actions
-- Completed missions are persisted in the savegame
+- Missions run in the background, in parallel; completed missions are stored
+  in the savegame (`GAMESTATE['Mondmissionen']`)
+- Missions can depend on other missions (`voraussetzung` in `actions.py`)
+- Missions and mining expeditions bind astronauts on the planet; bound
+  astronauts cannot start another mission, expedition or journey
+- Materials come from the planet's storage (`GAMESTATE['Lager']`), which is
+  filled by cargo flights
+- Mission rewards have lasting effects: Astronaut_Erfahrung (mining yield),
+  Mondstation_Modul (shorter Moon expeditions), Lebenserhaltung_Upgrade (less
+  water on journeys), Kommunikations_Upgrade (extra research points)
+- Mars mining is the only source of Gold, which the Weltraumstation needs
 
-**TODO**:
-- Make rewards/dependencies more flexible (chain missions, random modifiers)
-- Create new mission types (time requirements, rescue missions)
+**Ideas**:
+- New mission types (time requirements, rescue missions), Mars missions
 
 ---
 
@@ -112,9 +116,14 @@ unreachable; they are now 35 and 80. The unused duplicate key
 **Status**: Working
 
 **Current State**:
-- Single savefile support exists
-- Autosave every 150 ticks (~5 min) and after research, build, and mission completion
-- Manual save/load via File menu
+- Autosave every 150 ticks (~5 min) and after research, build, and mission
+  completion, always into the active slot (the one last loaded or saved)
+- Running research, build orders, queues and Earth jobs are saved
+- Saves are written atomically; an unreadable save is moved to
+  `<file>.beschaedigt` instead of being overwritten
+- "Neues Spiel" in the File menu restarts in the active slot
+- Recipes and distances are game rules: they are always taken from the
+  current code, not from the save
 
 **Implemented**:
 - Three save slots (`saveslots.py`); slot 1 keeps using `savefile.json`
@@ -192,10 +201,11 @@ The game is playable start to finish:
 2. Research unlocks workshop recipes (Eisenbarren → ... → Raumsonde → Mondlander → Rakete → Weltraumstation)
 3. A built Raumsonde can be launched from HQ; it discovers the Moon, then Mars
 4. Discovery unlocks the Planeten, Reisen, Mondmissionen and Mining tabs (no restart needed)
-5. Travels move ships, astronauts and cargo between planets
+5. Travels move ships, astronauts and cargo between planets; cargo supplies missions and mining on site
 6. Moon missions and mining expeditions provide credits, research points and rare materials
 7. The Shop sells materials and (researched) spaceships for credits
-8. Building the Weltraumstation wins the game
+8. Mars mining yields the Gold for the Weltraumstation
+9. Building the Weltraumstation wins the game
 
 ### 9. Achievements and Statistics
 **Status**: Working
@@ -207,17 +217,24 @@ The game is playable start to finish:
 
 ---
 
+## Testing
+
+`main.py` can be imported without a display: the tests replace FreeSimpleGUI
+with `tests/fake_sg.py` (fixture `spiel` in `tests/conftest.py`). The game loop
+is split into `verarbeite_tick()` and `verarbeite_event()`, so tests drive the
+real logic. `tests/test_durchspielen.py` plays the whole game with a bot and
+asserts it can be won.
+
 ## Known gaps
 
-- `core/` and `ui/` contain a refactor of the game logic that `main.py` never
-  adopted; only the tests import them. Either wire them up or drop them.
-- `Mondstation_Modul` and `Kommunikations_Upgrade` are handed out as mission
-  rewards but have no gameplay effect yet.
+- `main.py` is still one large module that mixes layout, state and logic.
+- Indentation and naming are not uniform across `main.py`.
+- The GUI itself is only covered through the stand-in; layout and visibility
+  behaviour of the real toolkit need a manual check.
 
 ## Summary
 
-The core loop is complete and verified winnable end to end. Travel now costs
-fuel and life support and can go wrong, the shop buys and sells, progress fits
-into three save slots, and a tutorial plus achievements guide and reward the
-player. Remaining work is depth: astronaut management, a Mars base, more
-mission variety, and untangling `main.py`.
+The game is complete and winnable end to end (the bot needs about 1000 cycles,
+roughly half an hour). Cargo, storage on Moon and Mars, mission rewards and
+Mars gold all feed into the Weltraumstation. Further work would be additional
+depth: astronaut management, Mars missions, more planets, base events.

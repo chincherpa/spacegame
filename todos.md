@@ -1,4 +1,4 @@
-hier sind alle offenen TODOs geordnet nach Aufwand:
+Stand der Arbeiten:
 
 Erledigt:
   - Materialien-Rückgabe bei Bau-Abbruch
@@ -28,18 +28,22 @@ Erledigt:
     Arbeiter), lesbare Akzentfarben, helle Tab-Icons + eigenes Arbeit-Icon,
     Text-Fortschrittsbalken, Planeten-Infos, Tastenkürzel (Strg+S, F1)
 
-Mittel:
-  - Mining/Missionen: mehr Belohnungsvielfalt, verkettete Missionen
-  - Mondstation_Modul und Kommunikations_Upgrade mit echter Wirkung versehen
-    (Lebenserhaltung_Upgrade senkt bereits den Wasserbedarf auf Reisen)
-  - Rückflug-Warnung, wenn Astronauten ohne Treibstoff auf einem Planeten stranden
+  - Code-Review-Befunde behoben (docs/CODE_REVIEW.md): Auswahl und laufender
+    Auftrag getrennt, aktiver Speicherslot, laufende Forschung/Bau gespeichert,
+    Astronautenbindung, Bau-Warteschlange, Shop-Daten, atomares Speichern
+  - Fracht hat eine Funktion: Lager auf Mond und Mars versorgen Missionen und Mining
+  - Verkettete Mondmissionen
+  - Missionsbelohnungen wirken (Erfahrung, Mondstation_Modul, Upgrades)
+  - Mars liefert das Gold für die Weltraumstation
+  - Rückflug-Warnung bei zu wenig Treibstoff
+  - "Neues Spiel" im Menü
+  - Tests laufen gegen die echte Spiellogik; ein Bot spielt bis zum Sieg durch
+  - core/ und ui/ entfernt (ungenutzter, veralteter Zweitentwurf)
 
-Groß:
-  - Astronauten-Management (Erfahrung, Skills, Namen)
+Ideen für später:
+  - Astronauten-Management (Erfahrung pro Person, Skills, Namen aus shipnames.py)
   - Mars-Basis mit eigenen Missionen
-  - main.py entflechten: die Module core/ und ui/ existieren bereits,
-    werden aber von main.py nicht benutzt (nur von den Tests)
-
-Sehr groß / Konzept:
   - Weitere Planeten und ein größeres Sonnensystem
   - Zufallsereignisse außerhalb von Reisen (Meteore, Pannen in der Basis)
+  - Slot aus dem UI löschen
+  - main.py in Layout, Zustand und Logik aufteilen; Einrückung vereinheitlichen
